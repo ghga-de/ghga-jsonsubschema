@@ -1,0 +1,38 @@
+name: Static Code Analysis
+
+on: push
+
+jobs:
+  static-code-analysis:
+    name: Static Code Analysis
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        id: checkout
+        uses: actions/checkout@v5
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Run pre-commit
+        uses: pre-commit/action@v3.0.1
+        env:
+          SKIP: no-commit-to-branch
+
+      - name: Run ruff
+        id: ruff
+        run: |
+          uv run ruff check --output-format=github .
+          uv run ruff format --check .
+
+      - name: Run mypy
+        id: mypy
+        run: |
+          uv run mypy .
