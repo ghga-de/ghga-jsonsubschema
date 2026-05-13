@@ -240,7 +240,7 @@ def test_simple_obj5():
             "gender": {"type": "string", "maxLength": 1, "enum": ["F", "M"]},
             "email": {"type": "string", "format": "email"},
         },
-        "patternProperties": {"^b(\w)+b$": {"type": "integer", "minimum": 10}},
+        "patternProperties": {r"^b(\w)+b$": {"type": "integer", "minimum": 10}},
     }
     assert not is_subschema(s1, s2)
     assert not is_subschema(s2, s1)
