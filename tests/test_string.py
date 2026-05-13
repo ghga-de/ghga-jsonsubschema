@@ -4,9 +4,6 @@ Created on July 11, 2019
 """
 
 import unittest
-import warnings
-
-from jsonschema.exceptions import SchemaError
 
 from jsonsubschema import isEquivalent, isSubschema, set_debug
 

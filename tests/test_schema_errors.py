@@ -13,14 +13,14 @@ from jsonsubschema import isSubschema
 class TestUnknownTypes(unittest.TestCase):
     def test_single_type(self):
         s1 = {"type": "foo"}
-        s2 = {}
+        s2: dict = {}
 
         with self.subTest():
             self.assertRaises(SchemaError, isSubschema, s1, s2)
 
     def test_list_of_types(self):
         s1 = {"type": ["foo", "string"]}
-        s2 = {}
+        s2: dict = {}
 
         with self.subTest():
             self.assertRaises(SchemaError, isSubschema, s1, s2)

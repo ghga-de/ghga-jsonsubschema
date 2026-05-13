@@ -20,7 +20,7 @@ class TestObjectSubtype(unittest.TestCase):
                 "email": {"type": "string", "format": "email"},
             },
         }
-        s2 = copy.deepcopy(s1)
+        s2: dict = copy.deepcopy(s1)
         s2["properties"]["gender"] = {
             "type": "string",
             "maxLength": 1,
@@ -151,7 +151,7 @@ class TestObjectSubtype(unittest.TestCase):
                 "email": {"type": "string", "format": "email"},
             },
         }
-        s2 = copy.deepcopy(s1)
+        s2: dict = copy.deepcopy(s1)
         del s2["properties"]["email"]
         with self.subTest():
             self.assertTrue(isSubschema(s1, s2))

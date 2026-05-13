@@ -20,7 +20,7 @@ class TestNull(unittest.TestCase):
 
     def test_null2(self):
         s1 = {"type": "null"}
-        s2 = {}
+        s2: dict = {}
 
         with self.subTest():
             self.assertTrue(isSubschema(s1, s2))

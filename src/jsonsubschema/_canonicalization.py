@@ -5,25 +5,22 @@ Created on June 24, 2019
 
 import copy
 import math
-import numbers
 import re
 import sys
-
-import jsonschema
 
 import jsonsubschema._constants as definitions
 import jsonsubschema._utils as utils
 from jsonsubschema._checkers import (
     JSONbot,
     JSONtop,
-    boolToConstructor,
-    typeToConstructor,
+    bool_to_constructor,
+    type_to_constructor,
 )
 from jsonsubschema.exceptions import UnsupportedEnumCanonicalization
 
 _nan = float("nan")
-TOP = {}
-BOT = {"not": {}}
+TOP: dict = {}
+BOT: dict = {"not": {}}
 
 
 def canonicalize_schema(obj):
@@ -41,10 +38,10 @@ def canonicalize_schema(obj):
     return canonical_schema
 
 
-def canonicalize_dict(d, outer_key=None):
+def canonicalize_dict(d, outer_key=None):  # noqa: C901, PLR0911, PLR0912
     # not actually needed, but for testing
     # canonicalization to work properly;
-    if d == {} or d == {"not": {}}:
+    if d in ({}, {"not": {}}):
         return d
 
     # Ignore (drop) any other validatoin keyword when there is a $ref
@@ -83,9 +80,9 @@ def canonicalize_dict(d, outer_key=None):
 
     if has_connectors:
         return canonicalize_connectors(d)
-    elif "enum" in d.keys():
+    elif "enum" in d:
         return canonicalize_enum(d)
-    elif "const" in d.keys():
+    elif "const" in d:
         return canonicalize_const(d)
     elif utils.is_str(t):
         return canonicalize_single_type(d)
@@ -103,7 +100,7 @@ def canonicalize_single_type(d):
         for k, v in list(d.items()):
             if (
                 k not in definitions.Jcommonkw
-                and k not in definitions.JtypesToKeywords.get(t)
+                and k not in definitions.JtypesToKeywords.get(t, set())
                 and k not in definitions.JNonValidation
             ):
                 d.pop(k)
@@ -171,7 +168,9 @@ def canonicalize_enum(d):
 
     d["enum"] = valid_vals
     actual_t = sorted(
-        set(map(lambda i: definitions.PyTypesToJtypes.get(type(i)), d.get("enum")))
+        t
+        for i in d.get("enum", [])
+        if (t := definitions.PyTypesToJtypes.get(type(i))) is not None
     )
     if "type" in d:
         orig_t = d["type"]
@@ -278,10 +277,10 @@ def canonicalize_not(d):
         sys.exit(">>>>>> Ewwwww! Shouldn't be here during canonicalization. <<<<<<")
 
 
-def rewrite_enum(d):
+def rewrite_enum(d):  # noqa: C901
     t = d.get("type")
     enum = d.get("enum")
-    ret = None
+    ret: dict | None = None
 
     if t == "string":
         pattern = "|".join(map(lambda x: "^" + str(re.escape(x)) + "$", enum))
@@ -321,20 +320,19 @@ def rewrite_enum(d):
         # return canonicalize_dict(ret)
 
     # Unsupported cases of rewriting enums
-    elif t == "array" or t == "object":
+    elif t in {"array", "object"}:
         raise UnsupportedEnumCanonicalization(tau=t, schema=d)
 
 
-def simplify_schema_and_embed_checkers(s):
+def simplify_schema_and_embed_checkers(s):  # noqa: C901, PLR0912
     """This function assumes the schema s is already canonicalized.
     So it must be a dict
     """
-    #
     if s == {} or not definitions.Jkeywords.intersection(s.keys()):
         top = JSONtop()
         # top.update(s)
         return top
-    if "not" in s.keys() and s["not"] == {}:
+    if "not" in s and s["not"] == {}:
         bot = JSONbot()
         # del s["not"]
         # bot.update(s)
@@ -372,17 +370,16 @@ def simplify_schema_and_embed_checkers(s):
             s["additionalProperties"]
         )
 
-    #
     if "type" in s:
-        return typeToConstructor.get(s["type"])(s)
+        return type_to_constructor[s["type"]](s)
 
     if "not" in s:
-        return typeToConstructor.get(s["not"]["type"]).neg(s["not"])
+        return type_to_constructor[s["not"]["type"]].neg(s["not"])
 
     if "anyOf" in s:
         anyofs = [simplify_schema_and_embed_checkers(i) for i in s["anyOf"]]
-        return boolToConstructor.get("anyOf")({"anyOf": anyofs})
+        return bool_to_constructor["anyOf"]({"anyOf": anyofs})
 
     if "allOf" in s:
         allofs = [simplify_schema_and_embed_checkers(i) for i in s["allOf"]]
-        return boolToConstructor.get("allOf")({"allOf": allofs})
+        return bool_to_constructor["allOf"]({"allOf": allofs})

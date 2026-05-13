@@ -151,7 +151,7 @@ class TestIntegerSubtype(unittest.TestCase):
         with self.subTest():
             self.assertTrue(isSubschema(s2, s1))
 
-    def test_mulOf1(self):
+    def test_mul_of1(self):
         s1 = {"type": "integer", "multipleOf": 10}
         s2 = {"type": "integer"}
         with self.subTest():
@@ -159,7 +159,7 @@ class TestIntegerSubtype(unittest.TestCase):
         with self.subTest():
             self.assertFalse(isSubschema(s2, s1))
 
-    def test_mulOf2(self):
+    def test_mul_of2(self):
         s1 = {"type": "integer", "multipleOf": 10}
         s2 = {"type": "integer", "multipleOf": 5}
         with self.subTest():
@@ -167,7 +167,7 @@ class TestIntegerSubtype(unittest.TestCase):
         with self.subTest():
             self.assertFalse(isSubschema(s2, s1))
 
-    def test_mulOf3(self):
+    def test_mul_of3(self):
         s1 = {"type": "integer", "multipleOf": 10}
         s2 = {"type": "integer", "multipleOf": 98}
         with self.subTest():
@@ -175,7 +175,7 @@ class TestIntegerSubtype(unittest.TestCase):
         with self.subTest():
             self.assertFalse(isSubschema(s2, s1))
 
-    def test_mulOf_min(self):
+    def test_mul_of_min(self):
         s1 = {"type": "integer", "multipleOf": 10}
         s2 = {"type": "integer", "minimum": 5}
         with self.subTest():
@@ -183,7 +183,7 @@ class TestIntegerSubtype(unittest.TestCase):
         with self.subTest():
             self.assertFalse(isSubschema(s2, s1))
 
-    def test_mulOf_min_min(self):
+    def test_mul_of_min_min(self):
         s1 = {"type": "integer", "multipleOf": 10, "minimum": 10}
         s2 = {"type": "integer", "minimum": 5}
         with self.subTest():
@@ -191,7 +191,7 @@ class TestIntegerSubtype(unittest.TestCase):
         with self.subTest():
             self.assertFalse(isSubschema(s2, s1))
 
-    def test_mulOf_min_min_max(self):
+    def test_mul_of_min_min_max(self):
         s1 = {"type": "integer", "multipleOf": 10, "minimum": 10}
         s2 = {"type": "integer", "minimum": 5, "maximum": 500}
         with self.subTest():
@@ -565,7 +565,7 @@ class TestNumberSubtype(unittest.TestCase):
         with self.subTest():
             self.assertTrue(isSubschema(s2, s1))
 
-    def test_mulOf1(self):
+    def test_mul_of1(self):
         s1 = {"type": "number", "multipleOf": 10.5}
         s2 = {"type": "number"}
         with self.subTest():
@@ -573,7 +573,7 @@ class TestNumberSubtype(unittest.TestCase):
         with self.subTest():
             self.assertFalse(isSubschema(s2, s1))
 
-    def test_mulOf2(self):
+    def test_mul_of2(self):
         s1 = {"type": "number", "multipleOf": 1.5}
         s2 = {"type": "number", "multipleOf": 6}
         with self.subTest():
@@ -581,12 +581,12 @@ class TestNumberSubtype(unittest.TestCase):
         with self.subTest():
             self.assertTrue(isSubschema(s2, s1))
 
-    def test_mulOf3(self):
+    def test_mul_of3(self):
         s1 = {"type": "number", "multipleOf": 0.5}
         s2 = {"type": "number", "multipleOf": -0.5}
         self.assertRaises(SchemaError, isSubschema, s1, s2)
 
-    def test_mulOf4(self):
+    def test_mul_of4(self):
         s1 = {"type": "number", "multipleOf": 1}
         s2 = {"type": "number"}
         with self.subTest():
@@ -594,7 +594,7 @@ class TestNumberSubtype(unittest.TestCase):
         with self.subTest():
             self.assertFalse(isSubschema(s2, s1))
 
-    def test_mulOf_min(self):
+    def test_mul_of_min(self):
         s1 = {"type": "number", "multipleOf": 10}
         s2 = {"type": "number", "minimum": 5}
         with self.subTest():
@@ -602,7 +602,7 @@ class TestNumberSubtype(unittest.TestCase):
         with self.subTest():
             self.assertFalse(isSubschema(s2, s1))
 
-    def test_mulOf_min_min(self):
+    def test_mul_of_min_min(self):
         s1 = {"type": "number", "multipleOf": 10, "minimum": 10}
         s2 = {"type": "number", "minimum": 5}
         with self.subTest():
@@ -610,7 +610,7 @@ class TestNumberSubtype(unittest.TestCase):
         with self.subTest():
             self.assertFalse(isSubschema(s2, s1))
 
-    def test_mulOf_min_min_max(self):
+    def test_mul_of_min_min_max(self):
         s1 = {"type": "number", "multipleOf": 10, "minimum": 10}
         s2 = {"type": "number", "minimum": 5, "maximum": 500}
         with self.subTest():
@@ -636,7 +636,7 @@ class TestNumericSubtype(unittest.TestCase):
         with self.subTest():
             self.assertFalse(isSubschema(s2, s1))
 
-    def test_mulOf_num_min_int(self):
+    def test_mul_of_num_min_int(self):
         s1 = {"type": "number", "multipleOf": 10}
         s2 = {"type": "integer", "minimum": 5}
         with self.subTest():
@@ -644,7 +644,7 @@ class TestNumericSubtype(unittest.TestCase):
         with self.subTest():
             self.assertFalse(isSubschema(s2, s1))
 
-    def test_mulOf_num_int(self):
+    def test_mul_of_num_int(self):
         s1 = {"type": "number", "multipleOf": 10}
         s2 = {"type": "integer"}
         with self.subTest():
@@ -652,7 +652,7 @@ class TestNumericSubtype(unittest.TestCase):
         with self.subTest():
             self.assertFalse(isSubschema(s2, s1))
 
-    def test_mulOf_num_int2(self):
+    def test_mul_of_num_int2(self):
         s1 = {"type": "number", "multipleOf": 1}
         s2 = {"type": "integer"}
         with self.subTest():
@@ -671,28 +671,7 @@ class TestNumericSubtype(unittest.TestCase):
 
     def test_not1(self):
 
-        s1 = {"not": {"type": "integer", "minimum": 10, "maximum": 20}}
-        s2 = {"not": {"minimum": 10, "maximum": 20}}
-
-        s1_ = {
-            "anyOf": [
-                {"type": "boolean"},
-                {"type": "object"},
-                {"type": "null"},
-                {"type": "array"},
-                {"type": "string"},
-                {"maximum": 9, "type": "integer"},
-                {"minimum": 21, "type": "integer"},
-                {"type": "number", "maximum": 9},
-                {"type": "number", "minimum": 21},
-                {
-                    "allOf": [
-                        {"type": "number", "minimum": 10, "maximum": 20},
-                        {"not": {"type": "integer"}},
-                    ]
-                },
-            ]
-        }
+        pass
 
         # with self.subTest('LHS < RHS'):
         #     self.assertFalse(isSubschema(s1, s1))

@@ -66,7 +66,7 @@ class TestEnum(unittest.TestCase):
 
     @unittest.skip("jsonschema.exceptions.SchemaError: [] is too short (enum)")
     def test_enum_uninhabited3(self):
-        s1 = {"enum": []}
+        s1: dict = {"enum": []}
         s2 = {"type": "boolean"}
 
         with self.subTest("LHS < RHS"):
@@ -76,8 +76,8 @@ class TestEnum(unittest.TestCase):
 
     @unittest.skip("jsonschema.exceptions.SchemaError: [] is too short (enum)")
     def test_enum_uninhabited4(self):
-        s1 = {"enum": []}
-        s2 = {"not": {}}
+        s1: dict = {"enum": []}
+        s2: dict = {"not": {}}
 
         with self.subTest("LHS < RHS"):
             self.assertTrue(isSubschema(s1, s2))
@@ -96,7 +96,7 @@ class TestEnum(unittest.TestCase):
 
 class TestEnumNotSupported(unittest.TestCase):
     def test_array(self):
-        s1 = {"enum": [[]]}
+        s1: dict = {"enum": [[]]}
         s2 = {"type": "array"}
 
         with self.subTest():

@@ -27,17 +27,19 @@ name = "ghga-jsonsubschema"
 version = "0.1.0"
 description = "A tool to check whether a JSON schema is subset/subschema of another JSON schema."
 dependencies = [
-    "greenery>=4.0.0",
-    "jsonref",
-    "jsonschema",
-    "portion",
+    "greenery>=4.2,<5",
+    "jsonref>=1.1,<2",
+    "jsonschema>=4.26,<5",
+    "portion>=2.6,<3",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "coverage[toml]",
-    "pre-commit",
-    "pytest",
+    "coverage[toml]>=7",
+    "mypy>=2.1",
+    "pre-commit>=4",
+    "pytest>=9",
+    "ruff>=0.15",
 ]
 
 [project.license]
@@ -118,13 +120,26 @@ max-complexity = 10
     "SIM",
     "D",
 ]
+# TODO: Add proper docstrings to all public methods and classes in src/, then remove these ignores.
+"src/jsonsubschema/*.py" = [
+    "D101",  # Missing docstring in public class
+    "D102",  # Missing docstring in public method
+]
 "tests/*" = [
     "S",
     "SIM",
     "PLR",
     "B011",
+    "D101",
+    "D102",
 ]
-"__init__.py" = ["D"]
+"__init__.py" = [
+    "D",
+    # TODO: Rename public API names to snake_case (breaking change, needs major version bump):
+    # isSubschema -> is_subschema, meetSchemas -> meet_schemas, joinSchemas -> join_schemas,
+    # isEquivalent -> is_equivalent, canonicalizeSchema -> canonicalize_schema
+    "N816",
+]
 
 [tool.ruff.lint.pydocstyle]
 convention = "pep257"
@@ -140,8 +155,6 @@ no_site_packages = false
 
 [tool.pytest.ini_options]
 minversion = "9.0"
-asyncio_mode = "strict"
-asyncio_default_fixture_loop_scope = "function"
 
 [tool.coverage.run]
 branch = true

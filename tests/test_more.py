@@ -4,11 +4,8 @@ Created on July 11, 2019
 """
 
 import unittest
-import warnings
 
-from jsonschema.exceptions import SchemaError
-
-from jsonsubschema import isEquivalent, isSubschema, set_debug
+from jsonsubschema import isEquivalent, isSubschema
 
 
 class TestPaperExamples(unittest.TestCase):
@@ -125,7 +122,7 @@ class TestPaperExamples(unittest.TestCase):
 
     def test_bool_enum(self):
         s1 = {"type": "boolean", "enum": [True], "not": {"enum": [True]}}
-        s2 = {"allOf": [{}, {"not": {}}]}
+        s2: dict = {"allOf": [{}, {"not": {}}]}
         with self.subTest():
             self.assertTrue(isSubschema(s1, s2))
         with self.subTest():

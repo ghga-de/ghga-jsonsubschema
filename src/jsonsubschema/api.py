@@ -3,19 +3,17 @@ Created on June 24, 2019
 @author: Andrew Habib
 """
 
-import sys
-
 import jsonref
 
 from jsonsubschema._canonicalization import (
     canonicalize_schema,
     simplify_schema_and_embed_checkers,
 )
-from jsonsubschema._utils import print_db, validate_schema
 from jsonsubschema.exceptions import UnsupportedRecursiveRef
 
 
 def prepare_operands(s1, s2):
+    """Resolve $ref, canonicalize, and embed checker objects into both schemas."""
     # First, we load schemas using jsonref to resolve $ref
     # before starting canonicalization.
 
@@ -46,10 +44,10 @@ def prepare_operands(s1, s2):
     return _s1, _s2
 
 
-def isSubschema(s1, s2):
+def is_subschema(s1, s2):
     """Entry point for schema subtype checking."""
     s1, s2 = prepare_operands(s1, s2)
-    return s1.isSubtype(s2)
+    return s1.is_subtype(s2)
 
 
 def meet(s1, s2):
@@ -64,6 +62,6 @@ def join(s1, s2):
     return s1.join(s2)
 
 
-def isEquivalent(s1, s2):
+def is_equivalent(s1, s2):
     """Entry point for schema equivalence check operation."""
-    return isSubschema(s1, s2) and isSubschema(s2, s1)
+    return is_subschema(s1, s2) and is_subschema(s2, s1)

@@ -12,11 +12,11 @@ import re
 import sys
 
 import jsonschema
-import portion as I
+import portion
 from greenery import parse
 
 import jsonsubschema._constants as definitions
-import jsonsubschema.config as config
+from jsonsubschema import config
 
 
 def is_str(i):
@@ -124,7 +124,7 @@ def print_db(*args):
 
 
 def prepare_pattern_for_greenry(s):
-    """The greenery library we use for regex intersection assumes
+    r"""The greenery library we use for regex intersection assumes
     patterns are unanchored by default. Anchoring chars ^ and $ are
     treated as literals by greenery.
     So basically strip any non-escaped ^ and $ when using greenery.
@@ -179,7 +179,7 @@ def regex_meet(s1, s2):
         return None
 
 
-def regex_isSubset(s1, s2):
+def regex_is_subset(s1, s2):
     """Regex subset is quite expensive to compute
     especially for complex patterns.
     """
@@ -190,7 +190,7 @@ def regex_isSubset(s1, s2):
             s1.cardinality()
             s2.cardinality()
             return set(s1.strings()).issubset(s2.strings())
-        except (OverflowError, Exception):
+        except OverflowError:
             # catching a general exception thrown from greenery
             # see https://github.com/qntm/greenery/blob/master/greenery/lego.py
             # ... raise Exception("Please choose an 'otherchar'")
@@ -217,10 +217,11 @@ def regex_isSubset(s1, s2):
 
 
 def string_range_to_regex(min, max):
-    assert min <= max, ""
+    if min > max:
+        raise ValueError(f"min ({min}) must be <= max ({max})")
     if min == max:
         pattern = ".{" + str(min) + "}"  # '.{min}'
-    elif max == I.inf:
+    elif max == portion.inf:
         pattern = ".{" + str(min) + ",}"  # '.{min,}'
     else:
         pattern = ".{" + str(min) + "," + str(max) + "}"  # '.{min, max}'
@@ -235,7 +236,7 @@ def complement_of_string_pattern(s):
 def lcm(x, y):
     bad_values = [
         None,
-    ]  # I.inf, -I.inf]
+    ]  # portion.inf, -portion.inf]
     if x in bad_values:
         if y in bad_values:
             return None
@@ -243,20 +244,19 @@ def lcm(x, y):
             return y
     elif y in bad_values:
         return x
+    elif is_int(x) and is_int(y):
+        return x * y / math.gcd(int(x), int(y))
     else:
-        if is_int(x) and is_int(y):
-            return x * y / math.gcd(int(x), int(y))
-        else:
-            # import warnings
-            # with warnings.catch_warnings():
-            #     warnings.filterwarnings("ignore", category=DeprecationWarning)
-            return x * y / float_gcd(x, y)
+        # import warnings
+        # with warnings.catch_warnings():
+        #     warnings.filterwarnings("ignore", category=DeprecationWarning)
+        return x * y / float_gcd(x, y)
 
 
 def gcd(x, y):
     bad_values = [
         None,
-    ]  # I.inf, -I.inf, None]
+    ]  # portion.inf, -portion.inf, None]
     if x in bad_values:
         if y in bad_values:
             return None
@@ -264,14 +264,13 @@ def gcd(x, y):
             return None
     elif y in bad_values:
         return None
+    elif is_int(x) and is_int(y):
+        return math.gcd(int(x), int(y))
     else:
-        if is_int(x) and is_int(y):
-            return math.gcd(int(x), int(y))
-        else:
-            # import warnings
-            # with warnings.catch_warnings():
-            #     warnings.filterwarnings("ignore", category=DeprecationWarning)
-            return float_gcd(x, y)
+        # import warnings
+        # with warnings.catch_warnings():
+        #     warnings.filterwarnings("ignore", category=DeprecationWarning)
+        return float_gcd(x, y)
 
 
 def float_gcd(a, b):
@@ -301,7 +300,7 @@ def float_gcd(a, b):
 #     return math.ldexp(m + sys.float_info.epsilon / 2, e)
 
 
-def generate_range_with_multipleOf_or(range_, pos_mul_of):
+def generate_range_with_multiple_of_or(range_, pos_mul_of):
     print(pos_mul_of)
     if pos_mul_of:
         for i in range_:
@@ -313,7 +312,7 @@ def generate_range_with_multipleOf_or(range_, pos_mul_of):
             yield i
 
 
-def generate_range_with_not_multipleOf_and(range_, neg_mul_of):
+def generate_range_with_not_multiple_of_and(range_, neg_mul_of):
     if neg_mul_of:
         for i in range_:
             if all(i % k != 0 for k in neg_mul_of):
@@ -324,8 +323,8 @@ def generate_range_with_not_multipleOf_and(range_, neg_mul_of):
 
 
 def generate_range_with_multipleof(range_, pos, neg):
-    return generate_range_with_not_multipleOf_and(
-        generate_range_with_multipleOf_or(range_, pos), neg
+    return generate_range_with_not_multiple_of_and(
+        generate_range_with_multiple_of_or(range_, pos), neg
     )
 
 

@@ -22,6 +22,7 @@ class UnsupportedRecursiveRef(_CanonicalizationError):
         self.which_side = which_side
 
     def __str__(self):
+        """Return human-readable error message."""
         return f"Recursive schemas are not supported. {self.which_side} is recursive."
 
 
@@ -31,6 +32,7 @@ class UnsupportedEnumCanonicalization(_CanonicalizationError):
         self.schema = schema
 
     def __str__(self):
+        """Return human-readable error message."""
         return f"Canonicalizing an enum schema of type {self.tau} is not supported."
 
 
@@ -39,6 +41,7 @@ class UnsupportedNegatedObject(_SubtypeCheckError):
         self.schema = schema
 
     def __str__(self):
+        """Return human-readable error message."""
         return f"Object negation at {self.schema} is not supported."
 
 
@@ -47,6 +50,7 @@ class UnsupportedNegatedArray(_SubtypeCheckError):
         self.schema = schema
 
     def __str__(self):
+        """Return human-readable error message."""
         return f"Array negation at {self.schema} is not supported."
 
 

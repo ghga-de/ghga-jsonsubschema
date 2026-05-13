@@ -6,7 +6,7 @@ Created on June 24, 2019
 import argparse
 
 from jsonsubschema._utils import load_json_file
-from jsonsubschema.api import isSubschema
+from jsonsubschema.api import is_subschema
 
 
 def main():
@@ -34,7 +34,7 @@ def main():
     s1 = load_json_file(s1_file_path, "LHS file:")
     s2 = load_json_file(s2_file_path, "RHS file:")
 
-    print("LHS <: RHS", isSubschema(s1, s2))
+    print("LHS <: RHS", is_subschema(s1, s2))
 
 
 if __name__ == "__main__":

@@ -7,8 +7,14 @@ import json
 import unittest
 
 import jsonsubschema._checkers as c
-from jsonsubschema import *
-from jsonsubschema._canonicalization import *
+from jsonsubschema import (
+    canonicalizeSchema,
+    isEquivalent,
+    isSubschema,
+    joinSchemas,
+    meetSchemas,
+)
+from jsonsubschema._canonicalization import simplify_schema_and_embed_checkers
 
 s1 = {"type": "number"}
 s2 = {"type": "integer"}
@@ -24,10 +30,10 @@ class TestAPI(unittest.TestCase):
         s2 = simplify_schema_and_embed_checkers(canonicalizeSchema(json.loads(s_2)))
 
         with self.subTest():
-            self.assertFalse(s1.isSubtype(s2))
+            self.assertFalse(s1.is_subtype(s2))
 
         with self.subTest():
-            self.assertTrue(s2.isSubtype(s1))
+            self.assertTrue(s2.is_subtype(s1))
 
         with self.subTest():
             self.assertEqual(s1.meet(s1), s1)
@@ -48,18 +54,18 @@ class TestAPI(unittest.TestCase):
             self.assertTrue(isEquivalent(s1.join(s2), s2.join(s1)))
 
         with self.subTest():
-            self.assertTrue((s1.meet(s2)).isSubtype(s2.meet(s1)))
+            self.assertTrue((s1.meet(s2)).is_subtype(s2.meet(s1)))
 
         with self.subTest():
-            self.assertTrue((s2.meet(s1)).isSubtype(s1.meet(s2)))
+            self.assertTrue((s2.meet(s1)).is_subtype(s1.meet(s2)))
 
         with self.subTest():
-            self.assertTrue((s1.join(s2)).isSubtype(s2.join(s1)))
+            self.assertTrue((s1.join(s2)).is_subtype(s2.join(s1)))
 
         with self.subTest():
-            self.assertTrue((s2.join(s1)).isSubtype(s1.join(s2)))
+            self.assertTrue((s2.join(s1)).is_subtype(s1.join(s2)))
 
-    def test_api_isSubschema(self):
+    def test_api_is_subschema(self):
 
         with self.subTest():
             self.assertFalse(isSubschema(s1, s2))

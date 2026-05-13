@@ -3,7 +3,6 @@ Created on Aug. 24, 2019
 @author: Andrew Habib
 """
 
-import copy
 import unittest
 
 from jsonsubschema import isSubschema

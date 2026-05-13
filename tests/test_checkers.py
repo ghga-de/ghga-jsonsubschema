@@ -1,3 +1,5 @@
+"""Tests for checker utility functions (top, bot, is_top, is_bot)."""
+
 import unittest
 
 from jsonsubschema._canonicalization import simplify_schema_and_embed_checkers

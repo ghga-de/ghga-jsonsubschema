@@ -9,7 +9,7 @@ from jsonsubschema import isSubschema
 
 
 class TestSingletonBooleans(unittest.TestCase):
-    def test_oneOf(self):
+    def test_one_of(self):
         s1 = {"oneOf": [{"type": "string"}]}
         s2 = {"type": "string"}
 
@@ -18,7 +18,7 @@ class TestSingletonBooleans(unittest.TestCase):
         with self.subTest():
             self.assertTrue(isSubschema(s2, s1))
 
-    def test_anyOf(self):
+    def test_any_of(self):
         s1 = {"anyOf": [{"type": "string"}]}
         s2 = {"type": "string"}
 
@@ -27,7 +27,7 @@ class TestSingletonBooleans(unittest.TestCase):
         with self.subTest():
             self.assertTrue(isSubschema(s2, s1))
 
-    def test_allOf(self):
+    def test_all_of(self):
         s1 = {"allOf": [{"type": "string"}]}
         s2 = {"type": "string"}
 
@@ -36,7 +36,7 @@ class TestSingletonBooleans(unittest.TestCase):
         with self.subTest():
             self.assertTrue(isSubschema(s2, s1))
 
-    def test_allOf_oneOf(self):
+    def test_all_of_one_of(self):
         s1 = {"allOf": [{"type": "string"}]}
         s2 = {"oneOf": [{"type": "string"}]}
 
@@ -76,7 +76,7 @@ class TestOneOf(unittest.TestCase):
         with self.subTest():
             self.assertTrue(isSubschema(s2, s1))
 
-    def test_oneOf5(self):
+    def test_one_of5(self):
         # accepts 3 only
         s1 = {"oneOf": [{"enum": [1, 2, 3]}, {"enum": [1, 2]}]}
         s2 = {"enum": [3]}
@@ -86,7 +86,7 @@ class TestOneOf(unittest.TestCase):
         with self.subTest("LHS > RHS"):
             self.assertTrue(isSubschema(s2, s1))
 
-    def test_oneOf6(self):
+    def test_one_of6(self):
         # accepts 3 only
         s1 = {"oneOf": [{"enum": [1, 2, 3]}, {"enum": [1, 2]}]}
         s2 = {"enum": [1, 2]}
@@ -98,7 +98,7 @@ class TestOneOf(unittest.TestCase):
 
 
 class TestAllOf(unittest.TestCase):
-    def test_allOf1(self):
+    def test_all_of1(self):
         s1 = {"allOf": [{"type": "string"}, {"type": "string", "pattern": "a"}]}
         s2 = {"type": "string"}
 
@@ -107,7 +107,7 @@ class TestAllOf(unittest.TestCase):
         with self.subTest("LHS > RHS"):
             self.assertFalse(isSubschema(s2, s1))
 
-    def test_allOf2(self):
+    def test_all_of2(self):
         s1 = {"allOf": [{"minimum": 10}, {"maximum": 20}]}
         s2 = {"minimum": 10, "maximum": 20}
 
@@ -118,7 +118,7 @@ class TestAllOf(unittest.TestCase):
 
 
 class TestNotBoolean(unittest.TestCase):
-    def test_not_allOf1(self):
+    def test_not_all_of1(self):
         s1 = {
             "not": {"allOf": [{"type": "string"}, {"type": "string", "pattern": "a"}]}
         }
@@ -129,7 +129,7 @@ class TestNotBoolean(unittest.TestCase):
         with self.subTest("LHS > RHS"):
             self.assertFalse(isSubschema(s2, s1))
 
-    def test_not_allOf2(self):
+    def test_not_all_of2(self):
         s1 = {
             "not": {"allOf": [{"type": "string"}, {"type": "string", "pattern": "a"}]}
         }
@@ -150,7 +150,7 @@ class TestNotBoolean(unittest.TestCase):
         with self.subTest("LHS > RHS"):
             self.assertFalse(isSubschema(s2, s1))
 
-    def test_not_allOf3(self):
+    def test_not_all_of3(self):
         s1 = {
             "not": {"allOf": [{"type": "string"}, {"type": "string", "pattern": "a"}]}
         }
@@ -171,16 +171,16 @@ class TestNotBoolean(unittest.TestCase):
         with self.subTest("LHS > RHS"):
             self.assertTrue(isSubschema(s2, s1))
 
-    def test_not_allOf4(self):
+    def test_not_all_of4(self):
         s1 = {"not": {"allOf": [{"type": "string"}, {"type": "boolean"}]}}
-        s2 = {}
+        s2: dict = {}
 
         with self.subTest("LHS < RHS"):
             self.assertTrue(isSubschema(s1, s2))
         with self.subTest("LHS > RHS"):
             self.assertTrue(isSubschema(s2, s1))
 
-    def test_not_anyOf1(self):
+    def test_not_any_of1(self):
         s1 = {"not": {"anyOf": [{"type": "string"}, {"type": "null"}]}}
         s2 = {"type": "string"}
 
@@ -189,7 +189,7 @@ class TestNotBoolean(unittest.TestCase):
         with self.subTest("LHS > RHS"):
             self.assertFalse(isSubschema(s2, s1))
 
-    def test_not_anyOf2(self):
+    def test_not_any_of2(self):
         s1 = {"not": {"anyOf": [{"type": "string"}, {"type": "null"}]}}
         s2 = {
             "anyOf": [
@@ -208,7 +208,7 @@ class TestNotBoolean(unittest.TestCase):
         with self.subTest("LHS > RHS"):
             self.assertFalse(isSubschema(s2, s1))
 
-    def test_not_oneOf1(self):
+    def test_not_one_of1(self):
         s1 = {"not": {"oneOf": [{"type": "string"}, {"type": "null"}]}}
         s2 = {"type": "string"}
 
@@ -217,7 +217,7 @@ class TestNotBoolean(unittest.TestCase):
         with self.subTest("LHS > RHS"):
             self.assertFalse(isSubschema(s2, s1))
 
-    def test_not_oneOf2(self):
+    def test_not_one_of2(self):
         # accepts anything but 3
         s1 = {"not": {"oneOf": [{"enum": [1, 2, 3]}, {"enum": [1, 2]}]}}
         s2 = {"not": {"enum": [3]}}
@@ -229,7 +229,7 @@ class TestNotBoolean(unittest.TestCase):
 
 
 class TestNotBooleans(unittest.TestCase):
-    def test_not_and_allOf1(self):
+    def test_not_and_all_of1(self):
         s1 = {"not": {"type": "string"}, "allOf": [{"type": "integer"}, {"enum": [5]}]}
         s2 = {"enum": [5]}
 
@@ -238,7 +238,7 @@ class TestNotBooleans(unittest.TestCase):
         with self.subTest("LHS > RHS"):
             self.assertTrue(isSubschema(s2, s1))
 
-    def test_not_and_anyOf1(self):
+    def test_not_and_any_of1(self):
         s1 = {
             "not": {"type": "string"},
             "anyOf": [{"type": "integer"}, {"type": "boolean"}],
@@ -265,14 +265,8 @@ class TestNotBooleans(unittest.TestCase):
             self.assertFalse(isSubschema(s2, s1))
 
     def test_not_and_two_nested_booleans(self):
-        s1 = {
-            "not": {
-                "anyOf": [{"type": "integer"}, {"type": "boolean"}],
-                "allOf": [{"minimum": 10}, {"maximum": 20}],
-            }
-        }
 
-        s2 = {"not": {"type": ["integer", "boolean"], "minimum": 10, "maximum": 20}}
+        pass
 
         # with self.subTest('LHS < RHS'):
         #     self.assertTrue(isSubschema(s1, s2))

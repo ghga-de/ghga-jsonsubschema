@@ -1,4 +1,5 @@
-import json
+"""Tests using AI-generated subschema examples."""
+
 import unittest
 
 import jsonsubschema
@@ -7,7 +8,7 @@ import jsonsubschema
 
 
 class TestAIExamples(unittest.TestCase):
-    lrOld_schema = {
+    lr_old_schema = {
         "$schema": "http://json-schema.org/draft-04/schema#",
         "description": "Input data schema for training.",
         "type": "object",
@@ -27,7 +28,7 @@ class TestAIExamples(unittest.TestCase):
         },
     }
 
-    lrNew_schema = {
+    lr_new_schema = {
         "$schema": "http://json-schema.org/draft-04/schema#",
         "description": "Input data schema for training.",
         "type": "object",
@@ -109,7 +110,7 @@ class TestAIExamples(unittest.TestCase):
         },
     }
 
-    irisArr_schema = {
+    iris_arr_schema = {
         "$schema": "http://json-schema.org/draft-04/schema#",
         "type": "object",
         "additionalProperties": False,
@@ -137,7 +138,7 @@ class TestAIExamples(unittest.TestCase):
         },
     }
 
-    irisDf_schema = {
+    iris_df_schema = {
         "$schema": "http://json-schema.org/draft-04/schema#",
         "type": "object",
         "additionalProperties": False,
@@ -235,7 +236,7 @@ class TestAIExamples(unittest.TestCase):
         },
     }
 
-    creditG_schema = {
+    credit_g_schema = {
         "$schema": "http://json-schema.org/draft-04/schema#",
         "type": "object",
         "additionalProperties": False,
@@ -377,7 +378,7 @@ class TestAIExamples(unittest.TestCase):
         },
     }
 
-    drugRev_schema = {
+    drug_rev_schema = {
         "$schema": "http://json-schema.org/draft-04/schema#",
         "type": "object",
         "additionalProperties": False,
@@ -417,7 +418,7 @@ class TestAIExamples(unittest.TestCase):
         },
     }
 
-    adultCat_schema = {
+    adult_cat_schema = {
         "$schema": "http://json-schema.org/draft-04/schema#",
         "type": "object",
         "additionalProperties": False,
@@ -458,7 +459,7 @@ class TestAIExamples(unittest.TestCase):
         },
     }
 
-    adultNum_schema = {
+    adult_num_schema = {
         "$schema": "http://json-schema.org/draft-04/schema#",
         "type": "object",
         "additionalProperties": False,
@@ -712,79 +713,79 @@ class TestAIExamples(unittest.TestCase):
         },
     }
 
-    operator_names = ["lrOld", "lrNew", "project", "nmf", "tfidf"]
+    operator_names = ["lr_old", "lr_new", "project", "nmf", "tfidf"]
     dataset_names = [
-        "irisArr",
-        "irisDf",
+        "iris_arr",
+        "iris_df",
         "digits",
         "housing",
-        "creditG",
+        "credit_g",
         "movies",
-        "drugRev",
-        "adultCat",
-        "adultNum",
+        "drug_rev",
+        "adult_cat",
+        "adult_num",
         "covtype",
     ]
 
     expected = {
-        "lrOld": {
-            "irisArr": True,
-            "irisDf": True,
+        "lr_old": {
+            "iris_arr": True,
+            "iris_df": True,
             "digits": True,
             "housing": True,
-            "creditG": False,
+            "credit_g": False,
             "movies": False,
-            "drugRev": False,
-            "adultCat": False,
-            "adultNum": True,
+            "drug_rev": False,
+            "adult_cat": False,
+            "adult_num": True,
             "covtype": False,
         },
-        "lrNew": {
-            "irisArr": True,
-            "irisDf": True,
+        "lr_new": {
+            "iris_arr": True,
+            "iris_df": True,
             "digits": True,
             "housing": True,
-            "creditG": False,
+            "credit_g": False,
             "movies": False,
-            "drugRev": False,
-            "adultCat": False,
-            "adultNum": True,
+            "drug_rev": False,
+            "adult_cat": False,
+            "adult_num": True,
             "covtype": True,
         },
         "project": {
-            "irisArr": True,
-            "irisDf": True,
+            "iris_arr": True,
+            "iris_df": True,
             "digits": True,
             "housing": True,
-            "creditG": True,
+            "credit_g": True,
             "movies": False,
-            "drugRev": True,
-            "adultCat": True,
-            "adultNum": True,
+            "drug_rev": True,
+            "adult_cat": True,
+            "adult_num": True,
             "covtype": True,
         },
         "nmf": {
-            "irisArr": False,
-            "irisDf": False,
+            "iris_arr": False,
+            "iris_df": False,
             "digits": True,
             "housing": False,
-            "creditG": False,
+            "credit_g": False,
             "movies": False,
-            "drugRev": False,
-            "adultCat": False,
-            "adultNum": False,
+            "drug_rev": False,
+            "adult_cat": False,
+            "adult_num": False,
             "covtype": False,
         },
         "tfidf": {
-            "irisArr": False,
-            "irisDf": False,
+            "iris_arr": False,
+            "iris_df": False,
             "digits": False,
             "housing": False,
-            "creditG": False,
+            "credit_g": False,
             "movies": True,
-            "drugRev": False,
-            "adultCat": False,
-            "adultNum": False,
+            "drug_rev": False,
+            "adult_cat": False,
+            "adult_num": False,
             "covtype": False,
         },
     }
