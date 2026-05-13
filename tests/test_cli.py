@@ -36,3 +36,14 @@ def test_cli_subschema_false(schema_files, monkeypatch, capsys):
     monkeypatch.setattr("sys.argv", ["jsonsubschema", lhs_path, rhs_path])
     main()
     assert capsys.readouterr().out.strip() == "LHS <: RHS None"
+
+
+def test_cli_readme_example(schema_files, monkeypatch, capsys):
+    """s2 (non-empty strings/nulls) is a subschema of s1 (all strings/nulls)."""
+    lhs_path, rhs_path = schema_files(
+        {"type": ["string", "null"], "not": {"enum": [""]}},
+        {"type": ["null", "string"]},
+    )
+    monkeypatch.setattr("sys.argv", ["jsonsubschema", lhs_path, rhs_path])
+    main()
+    assert capsys.readouterr().out.strip() == "LHS <: RHS True"
