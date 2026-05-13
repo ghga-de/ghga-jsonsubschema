@@ -1,0 +1,43 @@
+name: Run test suite and measure coverage
+
+on: push
+
+jobs:
+  tests:
+    name: Run test suite (Python ${{ matrix.python-version }})
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ['3.13', '3.14']
+
+    steps:
+      - name: Checkout repository
+        id: checkout
+        uses: actions/checkout@v5
+
+      - name: Common steps
+        id: common
+        uses: ghga-de/gh-action-common@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Run tests
+        id: pytest
+        run: |
+          export ${{ steps.common.outputs.CONFIG_YAML_ENV_VAR_NAME }}="${{ steps.common.outputs.CONFIG_YAML }}"
+
+          pytest \
+            --cov="${{ steps.common.outputs.PACKAGE_NAME }}" \
+            --cov-report=xml \
+            tests
+
+      - name: Upload coverage to coveralls
+        id: coveralls
+        if: matrix.python-version == '3.13'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pip install --upgrade coveralls
+          coveralls --service=github
