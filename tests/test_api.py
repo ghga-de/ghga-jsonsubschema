@@ -1,7 +1,7 @@
-'''
+"""
 Created on August 9, 2019
 @author: Andrew Habib
-'''
+"""
 
 import json
 import unittest
@@ -18,13 +18,10 @@ s_2 = '{"type": "integer"}'
 
 
 class TestAPI(unittest.TestCase):
-
     def test_decoder_and_api(self):
 
-        s1 = simplify_schema_and_embed_checkers(
-            canonicalizeSchema(json.loads(s_1)))
-        s2 = simplify_schema_and_embed_checkers(
-            canonicalizeSchema(json.loads(s_2)))
+        s1 = simplify_schema_and_embed_checkers(canonicalizeSchema(json.loads(s_1)))
+        s2 = simplify_schema_and_embed_checkers(canonicalizeSchema(json.loads(s_2)))
 
         with self.subTest():
             self.assertFalse(s1.isSubtype(s2))
@@ -71,26 +68,23 @@ class TestAPI(unittest.TestCase):
             self.assertTrue(isSubschema(s2, s1))
 
         with self.subTest():
-            self.assertTrue(isSubschema(
-                joinSchemas(s1, s2), joinSchemas(s2, s1)))
+            self.assertTrue(isSubschema(joinSchemas(s1, s2), joinSchemas(s2, s1)))
 
         with self.subTest():
-            self.assertTrue(isSubschema(
-                meetSchemas(s1, s2), meetSchemas(s2, s1)))
+            self.assertTrue(isSubschema(meetSchemas(s1, s2), meetSchemas(s2, s1)))
 
         with self.subTest():
-            self.assertTrue(isSubschema(
-                meetSchemas(s1, s2), joinSchemas(s2, s1)))
+            self.assertTrue(isSubschema(meetSchemas(s1, s2), joinSchemas(s2, s1)))
 
         with self.subTest():
-            self.assertFalse(isSubschema(
-                joinSchemas(s1, s2), meetSchemas(s2, s1)))
+            self.assertFalse(isSubschema(joinSchemas(s1, s2), meetSchemas(s2, s1)))
 
     def test_api_meet(self):
 
         with self.subTest():
-            self.assertEqual(meetSchemas(s1, s2), meetSchemas(
-                s2, s1), c.JSONTypeInteger({}))
+            self.assertEqual(
+                meetSchemas(s1, s2), meetSchemas(s2, s1), c.JSONTypeInteger({})
+            )
 
         with self.subTest():
             self.assertEqual(meetSchemas(s1, s1), s1)
@@ -101,9 +95,7 @@ class TestAPI(unittest.TestCase):
     def test_api_join(self):
 
         with self.subTest():
-
-            self.assertTrue(isEquivalent(
-                joinSchemas(s1, s2), joinSchemas(s2, s1)))
+            self.assertTrue(isEquivalent(joinSchemas(s1, s2), joinSchemas(s2, s1)))
 
         with self.subTest():
             self.assertEqual(joinSchemas(s1, s1), s1)

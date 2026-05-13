@@ -1,23 +1,22 @@
-'''
+"""
 Created on May 24, 2019
 @author: Andrew Habib
-'''
-
+"""
 
 import copy
 import fractions
+import json
 import math
 import numbers
 import re
 import sys
-import json
 
 import jsonschema
 import portion as I
 from greenery import parse
 
-import jsonsubschema.config as config
 import jsonsubschema._constants as definitions
+import jsonsubschema.config as config
 
 
 def is_str(i):
@@ -88,7 +87,7 @@ def get_valid_enum_vals(enum, s):
     # try:
     #     return sorted(vals)
     # except TypeError:
-        # return list(vals)
+    # return list(vals)
     return vals
 
 
@@ -125,18 +124,19 @@ def print_db(*args):
 
 
 def prepare_pattern_for_greenry(s):
-    ''' The greenery library we use for regex intersection assumes 
-        patterns are unanchored by default. Anchoring chars ^ and $ are
-        treated as literals by greenery.
-        So basically strip any non-escaped ^ and $ when using greenery.
-        Moreover, for any escaped ^ or $, we remove the \ to adhere to 
-        greenery syntax (when they are escaped, they are literals). '''
-
-    s = re.sub(r'(?<!\\|\[)((?:\\{2})*)\^', r'\g<1>',
-               s)  # strip non-escaped ^ that is not inside []
-    s = re.sub(r'(?<!\\)((?:\\{2})*)\$', r'\g<1>', s)  # strip non-escaped $
-    s = re.sub(r'(?<!\\)((?:\\{1})*)\\\^', r'\g<1>^', s)  # strip \ before ^
-    s = re.sub(r'(?<!\\)((?:\\{1})*)\\\$', r'\g<1>$', s)  # strip \ before $
+    """The greenery library we use for regex intersection assumes
+    patterns are unanchored by default. Anchoring chars ^ and $ are
+    treated as literals by greenery.
+    So basically strip any non-escaped ^ and $ when using greenery.
+    Moreover, for any escaped ^ or $, we remove the \ to adhere to
+    greenery syntax (when they are escaped, they are literals).
+    """
+    s = re.sub(
+        r"(?<!\\|\[)((?:\\{2})*)\^", r"\g<1>", s
+    )  # strip non-escaped ^ that is not inside []
+    s = re.sub(r"(?<!\\)((?:\\{2})*)\$", r"\g<1>", s)  # strip non-escaped $
+    s = re.sub(r"(?<!\\)((?:\\{1})*)\\\^", r"\g<1>^", s)  # strip \ before ^
+    s = re.sub(r"(?<!\\)((?:\\{1})*)\\\$", r"\g<1>$", s)  # strip \ before $
 
     return s
 
@@ -180,8 +180,9 @@ def regex_meet(s1, s2):
 
 
 def regex_isSubset(s1, s2):
-    ''' regex subset is quite expensive to compute
-        especially for complex patterns. '''
+    """Regex subset is quite expensive to compute
+    especially for complex patterns.
+    """
     if s1 and s2:
         s1 = parse(s1).reduce()
         s2 = parse(s2).reduce()
@@ -218,9 +219,9 @@ def regex_isSubset(s1, s2):
 def string_range_to_regex(min, max):
     assert min <= max, ""
     if min == max:
-        pattern = ".{" + str(min) + "}"             # '.{min}'
+        pattern = ".{" + str(min) + "}"  # '.{min}'
     elif max == I.inf:
-        pattern = ".{" + str(min) + ",}"            # '.{min,}'
+        pattern = ".{" + str(min) + ",}"  # '.{min,}'
     else:
         pattern = ".{" + str(min) + "," + str(max) + "}"  # '.{min, max}'
 
@@ -232,7 +233,9 @@ def complement_of_string_pattern(s):
 
 
 def lcm(x, y):
-    bad_values = [None, ]  # I.inf, -I.inf]
+    bad_values = [
+        None,
+    ]  # I.inf, -I.inf]
     if x in bad_values:
         if y in bad_values:
             return None
@@ -251,7 +254,9 @@ def lcm(x, y):
 
 
 def gcd(x, y):
-    bad_values = [None, ]  # I.inf, -I.inf, None]
+    bad_values = [
+        None,
+    ]  # I.inf, -I.inf, None]
     if x in bad_values:
         if y in bad_values:
             return None
@@ -320,8 +325,8 @@ def generate_range_with_not_multipleOf_and(range_, neg_mul_of):
 
 def generate_range_with_multipleof(range_, pos, neg):
     return generate_range_with_not_multipleOf_and(
-        generate_range_with_multipleOf_or(range_, pos),
-        neg)
+        generate_range_with_multipleOf_or(range_, pos), neg
+    )
 
 
 def get_new_min_max_with_mulof(mn, mx, mulof):
@@ -348,13 +353,15 @@ def is_interval_finite(i):
 
 
 def are_intervals_mergable(i1, i2):
-    return i1.overlaps(i2) \
-        or (is_num(i1.lower) and is_num(i2.upper) and i1.lower - i2.upper == 1) \
+    return (
+        i1.overlaps(i2)
+        or (is_num(i1.lower) and is_num(i2.upper) and i1.lower - i2.upper == 1)
         or (is_num(i2.lower) and is_num(i1.upper) and i2.lower - i1.upper == 1)
+    )
 
 
 def load_json_file(path, msg=None):
-    with open(path, "r") as fh:
+    with open(path) as fh:
         try:
             return json.load(fh)
         except Exception as e:

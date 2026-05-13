@@ -1,13 +1,9 @@
-'''
+"""
 Created on August 6, 2019
 @author: Andrew Habib
-'''
+"""
 
-
-from jsonsubschema import api
-from jsonsubschema import config
-from jsonsubschema import exceptions
-from jsonsubschema import _canonicalization
+from jsonsubschema import _canonicalization, api, config, exceptions
 
 isSubschema = api.isSubschema
 meetSchemas = api.meet

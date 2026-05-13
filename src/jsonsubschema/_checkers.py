@@ -1,7 +1,7 @@
-'''
+"""
 Created on June 24, 2019
 @author: Andrew Habib
-'''
+"""
 
 import copy
 import json
@@ -11,19 +11,14 @@ import sys
 import portion as I
 from greenery import parse
 
-import jsonsubschema.config as config
-
 import jsonsubschema._constants as definitions
 import jsonsubschema._utils as utils
+import jsonsubschema.config as config
 from jsonsubschema._utils import print_db
-from jsonsubschema.exceptions import (
-    UnsupportedNegatedArray,
-    UnsupportedNegatedObject
-)
+from jsonsubschema.exceptions import UnsupportedNegatedArray, UnsupportedNegatedObject
 
 
 class UninhabitedMeta(type):
-
     def __call__(cls, *args, **kwargs):
         obj = type.__call__(cls, *args, **kwargs)
         obj.updateInternalState()
@@ -33,7 +28,6 @@ class UninhabitedMeta(type):
 
 
 class JSONschema(dict, metaclass=UninhabitedMeta):
-
     def __init__(self, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
@@ -97,11 +91,11 @@ class JSONschema(dict, metaclass=UninhabitedMeta):
 
     # @staticmethod
     # def meet_enum(s1, s2):
-        # enum = set(s1.get("enum", [])) | set(s2.get("enum", []))
-        # valid_enum1 = utils.get_valid_enum_vals(enum, s1)
-        # valid_enum2 = utils.get_valid_enum_vals(enum, s2)
-        # return set(valid_enum1) & set(valid_enum2)
-        # return list(valid_enum1) + list(valid_enum2)
+    # enum = set(s1.get("enum", [])) | set(s2.get("enum", []))
+    # valid_enum1 = utils.get_valid_enum_vals(enum, s1)
+    # valid_enum2 = utils.get_valid_enum_vals(enum, s2)
+    # return set(valid_enum1) & set(valid_enum2)
+    # return list(valid_enum1) + list(valid_enum2)
 
     def meet_handle_rhs(self, s, meet_cb):
 
@@ -112,8 +106,9 @@ class JSONschema(dict, metaclass=UninhabitedMeta):
             return meet_cb(self, s)
 
     def _join(self, s):
-        ''' Place holder in case a subclass does not implement its own join.
-            Should be removed once we are done fully implementing join '''
+        """Place holder in case a subclass does not implement its own join.
+        Should be removed once we are done fully implementing join
+        """
         ret = {"anyOf": [self, s]}
         # print("Eww! Using abstract _join :: running into corner case!")
         return JSONanyOf(ret)
@@ -156,8 +151,7 @@ class JSONschema(dict, metaclass=UninhabitedMeta):
         if is_bot(self) or is_top(s):
             return True
         #
-        if (not is_bot(self) and is_bot(s)) \
-                or (is_top(self) and not is_top(s)):
+        if (not is_bot(self) and is_bot(s)) or (is_top(self) and not is_top(s)):
             return False
         #
         return self.subtype_enum(s) and self._isSubtype(s)
@@ -275,14 +269,15 @@ class JSONbot(JSONschema):
 
 
 def is_bot(obj):
-    return obj is False \
-        or (utils.is_dict(obj) and obj.get("not") == {}) \
-        or isinstance(obj, JSONbot) \
+    return (
+        obj is False
+        or (utils.is_dict(obj) and obj.get("not") == {})
+        or isinstance(obj, JSONbot)
         or (isinstance(obj, JSONschema) and obj.isUninhabited())
+    )
 
 
 class JSONTypeString(JSONschema):
-
     def __init__(self, s):
         super().__init__(s)
         self.type = self["type"] = "string"
@@ -298,7 +293,7 @@ class JSONTypeString(JSONschema):
             self.pattern = ""
 
     def _isUninhabited(self):
-        return (self.minLength > self.maxLength)
+        return self.minLength > self.maxLength
         # or self.pattern == None
         # See comment below at updateInternalState()
         # or self.range_with_pattern == None
@@ -347,18 +342,15 @@ class JSONTypeString(JSONschema):
                 if s1.minLength == 0 and s1.maxLength == I.inf:
                     s1_range = None
                 else:
-                    s1_range = utils.string_range_to_regex(
-                        s1.minLength, s1.maxLength)
+                    s1_range = utils.string_range_to_regex(s1.minLength, s1.maxLength)
                 if s2.minLength == 0 and s2.maxLength == I.inf:
                     s2_range = None
                 else:
-                    s2_range = utils.string_range_to_regex(
-                        s2.minLength, s2.maxLength)
+                    s2_range = utils.string_range_to_regex(s2.minLength, s2.maxLength)
                 s1_new_pattern = utils.regex_meet(s1_range, s1.pattern)
                 s2_new_pattern = utils.regex_meet(s2_range, s2.pattern)
                 if s1_new_pattern and s2_new_pattern:
-                    ret["pattern"] = "^" + s1_new_pattern + \
-                        "$|^" + s2_new_pattern + "$"
+                    ret["pattern"] = "^" + s1_new_pattern + "$|^" + s2_new_pattern + "$"
                 return JSONTypeString(ret)
             else:
                 return JSONanyOf({"anyOf": [s1, s2]})
@@ -376,20 +368,22 @@ class JSONTypeString(JSONschema):
                 if s1.pattern == s2.pattern:
                     return True
                 elif s1.hasEnum():
-                    return super(JSONTypeString, s1).subtype_enum(s2)
+                    return super().subtype_enum(s2)
                 else:
                     if s1.minLength == 0 and s1.maxLength == I.inf:
                         pattern1 = s1.pattern
                     else:
                         s1_range = utils.string_range_to_regex(
-                            s1.minLength, s1.maxLength)
+                            s1.minLength, s1.maxLength
+                        )
                         pattern1 = utils.regex_meet(s1_range, s1.pattern)
 
                     if s2.minLength == 0 and s2.maxLength == I.inf:
                         pattern2 = s2.pattern
                     else:
                         s2_range = utils.string_range_to_regex(
-                            s2.minLength, s2.maxLength)
+                            s2.minLength, s2.maxLength
+                        )
                         pattern2 = utils.regex_meet(s2_range, s2.pattern)
 
                     if utils.regex_isSubset(pattern1, pattern2):
@@ -405,32 +399,33 @@ class JSONTypeString(JSONschema):
     def neg(s):
         negated_strings = []
         non_string = boolToConstructor.get("anyOf")(
-            {"anyOf": get_default_types_except("string")})
+            {"anyOf": get_default_types_except("string")}
+        )
 
         if "minLength" in s and s["minLength"] - 1 >= 0:
-            negated_strings.append(JSONTypeString(
-                {"maxLength": s["minLength"] - 1}))
+            negated_strings.append(JSONTypeString({"maxLength": s["minLength"] - 1}))
         if "maxLength" in s:
-            negated_strings.append(JSONTypeString(
-                {"minLength": s["maxLength"] + 1}))
+            negated_strings.append(JSONTypeString({"minLength": s["maxLength"] + 1}))
         if "pattern" in s:
             # Explicitly anchor pattern when assigned to the json key
             # to reflect the greenery lib behavior on the json object.
             patrn = utils.prepare_pattern_for_greenry(
-                utils.regex_unanchor(s["pattern"]))
-            negated_strings.append(JSONTypeString(
-                {"pattern": "^" + utils.complement_of_string_pattern(patrn) + "$"}))
+                utils.regex_unanchor(s["pattern"])
+            )
+            negated_strings.append(
+                JSONTypeString(
+                    {"pattern": "^" + utils.complement_of_string_pattern(patrn) + "$"}
+                )
+            )
 
         if len(negated_strings) == 0:
             return non_string
         else:
-            joined_string = boolToConstructor.get(
-                "anyOf")({"anyOf": negated_strings})
+            joined_string = boolToConstructor.get("anyOf")({"anyOf": negated_strings})
             return non_string.join(joined_string)
 
 
 class JSONTypeNumeric(JSONschema):
-
     def __init__(self, s):
         super().__init__(s)
         self.minimum = self.get("minimum", -I.inf)
@@ -440,8 +435,11 @@ class JSONTypeNumeric(JSONschema):
         self.multipleOf = self.get("multipleOf", None)
 
     def _isUninhabited(self):
-        return self.interval.empty \
-            or utils.is_num(self.multipleOf) and self.multipleOf > self.maximum
+        return (
+            self.interval.empty
+            or utils.is_num(self.multipleOf)
+            and self.multipleOf > self.maximum
+        )
 
     def updateInternalState(self):
         self.build_interval_draft4()
@@ -480,7 +478,6 @@ class JSONTypeNumeric(JSONschema):
 
 
 class JSONTypeInteger(JSONTypeNumeric):
-
     def __init__(self, s):
         super().__init__(s)
         self.type = self["type"] = "integer"
@@ -510,7 +507,8 @@ class JSONTypeInteger(JSONTypeNumeric):
             self.maximum = math.floor(self.maximum)
 
         self.minimum, self.maximum = utils.get_new_min_max_with_mulof(
-            self.minimum, self.maximum, self.multipleOf)
+            self.minimum, self.maximum, self.multipleOf
+        )
 
         self.interval = I.closed(self.minimum, self.maximum)
 
@@ -528,8 +526,9 @@ class JSONTypeInteger(JSONTypeNumeric):
                         if utils.is_num(joined_interval.upper):
                             ret["maximum"] = joined_interval.upper
                         return JSONTypeInteger(ret)
-                    elif (s1.multipleOf and utils.is_interval_finite(s1.interval)) or \
-                            (s2.multipleOf and utils.is_interval_finite(s2.interval)):
+                    elif (s1.multipleOf and utils.is_interval_finite(s1.interval)) or (
+                        s2.multipleOf and utils.is_interval_finite(s2.interval)
+                    ):
                         ret = JSONanyOf({"anyOf": [s1, s2]})
                         ret.nonTrivialJoin = True
                         return ret
@@ -550,17 +549,23 @@ class JSONTypeInteger(JSONTypeNumeric):
         def _isIntegerSubtype(s1, s2):
             if s2.type in definitions.Jnumeric:
                 if s1.hasEnum():
-                    return super(JSONTypeInteger, s1).subtype_enum(s2)
+                    return super().subtype_enum(s2)
                 #
                 is_sub_interval = s1.interval in s2.interval
                 if not is_sub_interval:
                     print_db("num__00")
                     return False
                 #
-                if (s1.multipleOf == s2.multipleOf) \
-                        or (s1.multipleOf != None and s2.multipleOf == None) \
-                        or (s1.multipleOf != None and s2.multipleOf != None and s1.multipleOf % s2.multipleOf == 0) \
-                        or (s1.multipleOf == None and s2.multipleOf == 1):
+                if (
+                    (s1.multipleOf == s2.multipleOf)
+                    or (s1.multipleOf != None and s2.multipleOf == None)
+                    or (
+                        s1.multipleOf != None
+                        and s2.multipleOf != None
+                        and s1.multipleOf % s2.multipleOf == 0
+                    )
+                    or (s1.multipleOf == None and s2.multipleOf == 1)
+                ):
                     print_db("num__01")
                     return True
             # elif s2.type == "anyOf":
@@ -577,11 +582,13 @@ class JSONTypeInteger(JSONTypeNumeric):
             interval_to_mulofs = {}
             for num_schema in s.anyOf:
                 if num_schema.interval not in interval_to_mulofs:
-                    interval_to_mulofs[num_schema.interval] = [
-                        num_schema.multipleOf] if num_schema.multipleOf else []
+                    interval_to_mulofs[num_schema.interval] = (
+                        [num_schema.multipleOf] if num_schema.multipleOf else []
+                    )
                 elif num_schema.multipleOf:
                     interval_to_mulofs[num_schema.interval].append(
-                        num_schema.multipleOf)
+                        num_schema.multipleOf
+                    )
 
                 added = False
                 for j in list(intervals):
@@ -593,7 +600,9 @@ class JSONTypeInteger(JSONTypeNumeric):
                     intervals.append(num_schema.interval)
 
             mulof = [self.multipleOf] if self.multipleOf else []
-            for x in utils.generate_range_with_multipleof(range(self.minimum, self.maximum+1), mulof, []):
+            for x in utils.generate_range_with_multipleof(
+                range(self.minimum, self.maximum + 1), mulof, []
+            ):
                 for interv, m in interval_to_mulofs.items():
                     if x in interv:
                         if m:
@@ -610,7 +619,8 @@ class JSONTypeInteger(JSONTypeNumeric):
     def neg(s):
         negated_ints = []
         non_ints = boolToConstructor.get("anyOf")(
-            {"anyOf": get_default_types_except("number", "integer")})
+            {"anyOf": get_default_types_except("number", "integer")}
+        )
 
         if "minimum" in s:
             # if "exclusiveMinimum":
@@ -629,13 +639,11 @@ class JSONTypeInteger(JSONTypeNumeric):
         if len(negated_ints) == 0:
             return non_ints
         else:
-            joined_ints = boolToConstructor.get(
-                "anyOf")({"anyOf": negated_ints})
+            joined_ints = boolToConstructor.get("anyOf")({"anyOf": negated_ints})
             return non_ints.join(joined_ints)
 
 
 class JSONTypeNumber(JSONTypeNumeric):
-
     def __init__(self, s):
         super().__init__(s)
         self.type = self["type"] = "number"
@@ -686,16 +694,22 @@ class JSONTypeNumber(JSONTypeNumeric):
         def _isNumberSubtype(s1, s2):
             if s2.type == "number":
                 if s1.hasEnum():
-                    return super(JSONTypeNumber, s1).subtype_enum(s2)
+                    return super().subtype_enum(s2)
                 is_sub_interval = s1.interval in s2.interval
                 if not is_sub_interval:
                     print_db("num__00")
                     return False
                 #
-                if (s1.multipleOf == s2.multipleOf) \
-                        or (s1.multipleOf != None and s2.multipleOf == None) \
-                        or (s1.multipleOf != None and s2.multipleOf != None and s1.multipleOf % s2.multipleOf == 0) \
-                        or (utils.is_int_equiv(s1.multipleOf) and s2.multipleOf == None):
+                if (
+                    (s1.multipleOf == s2.multipleOf)
+                    or (s1.multipleOf != None and s2.multipleOf == None)
+                    or (
+                        s1.multipleOf != None
+                        and s2.multipleOf != None
+                        and s1.multipleOf % s2.multipleOf == 0
+                    )
+                    or (utils.is_int_equiv(s1.multipleOf) and s2.multipleOf == None)
+                ):
                     print_db("num__01")
                     return True
             elif s2.type == "integer":
@@ -704,8 +718,14 @@ class JSONTypeNumber(JSONTypeNumeric):
                     print_db("num__02")
                     return False
                 #
-                if utils.is_int_equiv(s1.multipleOf) and \
-                        (s2.multipleOf == None or ((s1.multipleOf != None and s2.multipleOf != None and s1.multipleOf % s2.multipleOf == 0))):
+                if utils.is_int_equiv(s1.multipleOf) and (
+                    s2.multipleOf == None
+                    or (
+                        s1.multipleOf != None
+                        and s2.multipleOf != None
+                        and s1.multipleOf % s2.multipleOf == 0
+                    )
+                ):
                     print_db("num__03")
                     return True
             else:
@@ -718,34 +738,33 @@ class JSONTypeNumber(JSONTypeNumeric):
     def neg(s):
         negated_numbers = []
         non_numbers = boolToConstructor.get("anyOf")(
-            {"anyOf": get_default_types_except("number", "integer")})
+            {"anyOf": get_default_types_except("number", "integer")}
+        )
 
         if "minimum" in s:
             if "exclusiveMinimum":
-                negated_numbers.append(
-                    JSONTypeNumber({"maximum": s["minimum"]}))
+                negated_numbers.append(JSONTypeNumber({"maximum": s["minimum"]}))
             else:
-                negated_numbers.append(JSONTypeNumber(
-                    {"maximum": s["minimum"], "exclusiveMaximum": True}))
+                negated_numbers.append(
+                    JSONTypeNumber({"maximum": s["minimum"], "exclusiveMaximum": True})
+                )
         if "maximum" in s:
             if "exclusiveMaximum":
-                negated_numbers.append(
-                    JSONTypeNumber({"minimum": s["maximum"]}))
+                negated_numbers.append(JSONTypeNumber({"minimum": s["maximum"]}))
             else:
-                negated_numbers.append(JSONTypeNumber(
-                    {"minimum": s["maximum"], "exclusiveMinimum": True}))
+                negated_numbers.append(
+                    JSONTypeNumber({"minimum": s["maximum"], "exclusiveMinimum": True})
+                )
         # TODO: No handling of multipleOf at the moment.
 
         if len(negated_numbers) == 0:
             return non_numbers
         else:
-            joined_numbers = boolToConstructor.get(
-                "anyOf")({"anyOf": negated_numbers})
+            joined_numbers = boolToConstructor.get("anyOf")({"anyOf": negated_numbers})
             return non_numbers.join(joined_numbers)
 
 
 class JSONTypeBoolean(JSONschema):
-
     def __init__(self, s):
         super().__init__(s)
         self.type = self["type"] = "boolean"
@@ -791,20 +810,20 @@ class JSONTypeBoolean(JSONschema):
     def neg(s):
         negated_boolean = []
         non_boolean = boolToConstructor.get("anyOf")(
-            {"anyOf": get_default_types_except("boolean")})
-        
+            {"anyOf": get_default_types_except("boolean")}
+        )
+
         # booleans are allowed to keep enums, so check if any
         _enum = s.get("enum")
         if _enum:
-            if len(_enum) == 1: # exactly negating one value, return the other
+            if len(_enum) == 1:  # exactly negating one value, return the other
                 # negated_boolean.append(JSONTypeBoolean({"enum": [not _enum[0]]}))
                 return non_boolean.join(JSONTypeBoolean({"enum": [not _enum[0]]}))
-        
+
         return non_boolean
 
 
 class JSONTypeNull(JSONschema):
-
     def __init__(self, s):
         super().__init__(s)
         self.type = self["type"] = "null"
@@ -836,11 +855,11 @@ class JSONTypeNull(JSONschema):
     @staticmethod
     def neg(s):
         return boolToConstructor.get("anyOf")(
-            {"anyOf": get_default_types_except("null")})
+            {"anyOf": get_default_types_except("null")}
+        )
 
 
 class JSONTypeArray(JSONschema):
-
     def __init__(self, s):
         super().__init__(s)
         self.type = self["type"] = "array"
@@ -857,10 +876,15 @@ class JSONTypeArray(JSONschema):
                 self.maxItems = new_max
 
     def _isUninhabited(self):
-        return (self.minItems > self.maxItems) or \
-            (utils.is_list(self.items_) and self.additionalItems ==
-             False and self.minItems > len(self.items_)) or \
-            (utils.is_list(self.items_) and len(self.items_) == 0)
+        return (
+            (self.minItems > self.maxItems)
+            or (
+                utils.is_list(self.items_)
+                and self.additionalItems == False
+                and self.minItems > len(self.items_)
+            )
+            or (utils.is_list(self.items_) and len(self.items_) == 0)
+        )
 
     def updateInternalState(self):
         self.compute_actual_maxItems()
@@ -884,8 +908,9 @@ class JSONTypeArray(JSONschema):
                 ret.uniqueItems = s1.uniqueItems or s2.uniqueItems
 
                 def meet_arrayItems_dict_list(s1, s2, ret):
-                    assert utils.is_dict(s1.items_) and utils.is_list(
-                        s2.items_), "Violating meet_arrayItems_dict_list condition: 's1.items is dict' and 's2.items is list'"
+                    assert utils.is_dict(s1.items_) and utils.is_list(s2.items_), (
+                        "Violating meet_arrayItems_dict_list condition: 's1.items is dict' and 's2.items is list'"
+                    )
 
                     itms = []
                     for i in s2.items_:
@@ -903,12 +928,10 @@ class JSONTypeArray(JSONschema):
                         ret.additionalItems = False
                     elif utils.is_dict(s2.additionalItems):
                         addItms = s2.additionalItems.meet(s1.items_)
-                        ret.additionalItems = False if is_bot(
-                            addItms) else addItms
+                        ret.additionalItems = False if is_bot(addItms) else addItms
                     return ret
 
                 if utils.is_dict(s1.items_):
-
                     if utils.is_dict(s2.items_):
                         ret.items = s1.items_.meet(s2.items_)
 
@@ -916,7 +939,6 @@ class JSONTypeArray(JSONschema):
                         ret = meet_arrayItems_dict_list(s1, s2, ret)
 
                 elif utils.is_list(s1.items_):
-
                     if utils.is_dict(s2.items_):
                         ret = meet_arrayItems_dict_list(s2, s1, ret)
 
@@ -925,20 +947,22 @@ class JSONTypeArray(JSONschema):
                         s_len = len(s2.items_)
 
                         def meet_arrayAdditionalItems_list_list(s1, s2):
-                            if utils.is_bool(s1.additionalItems) and utils.is_bool(s2.additionalItems):
+                            if utils.is_bool(s1.additionalItems) and utils.is_bool(
+                                s2.additionalItems
+                            ):
                                 ad = s1.additionalItems and s2.additionalItems
                             elif utils.is_dict(s1.additionalItems):
-                                ad = s1.additionalItems.meet(
-                                    s2.additionalItems)
+                                ad = s1.additionalItems.meet(s2.additionalItems)
                             elif utils.is_dict(s2.additionalItems):
-                                ad = s2.additionalItems.meet(
-                                    s1.additionalItems)
+                                ad = s2.additionalItems.meet(s1.additionalItems)
                             return False if is_bot(ad) else ad
 
                         def meet_array_longlist_shorterlist(s1, s2, ret):
                             s1_len = len(s1.items_)
                             s2_len = len(s2.items_)
-                            assert s1_len > s2_len, "Violating meet_array_longlist_shorterlist condition: 's1.len > s2.len'"
+                            assert s1_len > s2_len, (
+                                "Violating meet_array_longlist_shorterlist condition: 's1.len > s2.len'"
+                            )
                             itms = []
                             for i, j in zip(s1.items_, s2.items_):
                                 r = i.meet(j)
@@ -956,8 +980,7 @@ class JSONTypeArray(JSONschema):
                                         ad = False
                                         break
                                 else:
-                                    ad = meet_arrayAdditionalItems_list_list(
-                                        s1, s2)
+                                    ad = meet_arrayAdditionalItems_list_list(s1, s2)
 
                             ret.additionalItems = ad
                             ret.items_ = itms
@@ -973,8 +996,7 @@ class JSONTypeArray(JSONschema):
                                     ad = False
                                     break
                             else:
-                                ad = meet_arrayAdditionalItems_list_list(
-                                    s1, s2)
+                                ad = meet_arrayAdditionalItems_list_list(s1, s2)
 
                             ret.additionalItems = ad
                             ret.items_ = itms
@@ -998,7 +1020,7 @@ class JSONTypeArray(JSONschema):
             if s2.type != "array":
                 return False
             if s1.hasEnum():
-                return super(JSONTypeArray, s1).subtype_enum(s2)
+                return super().subtype_enum(s2)
             #
             # -- minItems and maxItems
             is_sub_interval = s1.interval in s2.interval
@@ -1041,8 +1063,7 @@ class JSONTypeArray(JSONschema):
                                 print_db("__10__")
                                 return False
                         print_db(type(s1.items_), s1.items_)
-                        print_db(type(s2.additionalItems),
-                                 s2.additionalItems)
+                        print_db(type(s2.additionalItems), s2.additionalItems)
                         if s1.items_.isSubtype(s2.additionalItems):
                             print_db("__11__")
                             return True
@@ -1098,7 +1119,7 @@ class JSONTypeArray(JSONschema):
                             return s1.additionalItems.isSubtype(s2.additionalItems)
                     elif len1 > len2:
                         diff = len1 - len2
-                        for i in range(len1-diff, len1):
+                        for i in range(len1 - diff, len1):
                             if s2.additionalItems == False:
                                 return False
                             elif s2.additionalItems == True:
@@ -1127,15 +1148,15 @@ class JSONTypeArray(JSONschema):
         #     if s.__getattr__(k) != default:
         #         break
         # else:
-        if s.keys() & definitions.JtypesToKeywords['array']:
+        if s.keys() & definitions.JtypesToKeywords["array"]:
             raise UnsupportedNegatedArray(schema=s)
-        else: 
-             return boolToConstructor.get("anyOf")(
-            {"anyOf": get_default_types_except("array")})
+        else:
+            return boolToConstructor.get("anyOf")(
+                {"anyOf": get_default_types_except("array")}
+            )
 
 
 class JSONTypeObject(JSONschema):
-
     def __init__(self, s):
         super().__init__(s)
         self.type = self["type"] = "object"
@@ -1163,8 +1184,9 @@ class JSONTypeObject(JSONschema):
     def _isUninhabited(self):
 
         def required_is_uninhabited(s):
-            ''' checks if every required key is actually allowed 
-                by the key restrictions '''
+            """Checks if every required key is actually allowed
+            by the key restrictions
+            """
             if s.additionalProperties:
                 return False
 
@@ -1180,16 +1202,21 @@ class JSONTypeObject(JSONschema):
 
             return False
 
-        return self.minProperties > self.maxProperties \
-            or len(self.required) > self.maxProperties \
+        return (
+            self.minProperties > self.maxProperties
+            or len(self.required) > self.maxProperties
             or required_is_uninhabited(self)
+        )
 
     def updateInternalState(self):
         self.compute_actual_min_max_Properties()
         self.interval = I.closed(self.minProperties, self.maxProperties)
-        if len(self.properties) == self.maxProperties \
-                or len(self.patternProperties) == self.maxProperties \
-                or (len(self.properties) + len(self.patternProperties)) == self.maxProperties:
+        if (
+            len(self.properties) == self.maxProperties
+            or len(self.patternProperties) == self.maxProperties
+            or (len(self.properties) + len(self.patternProperties))
+            == self.maxProperties
+        ):
             self.additionalProperties = False
         #
         # if self.patternProperties != self.kw_defaults["patternProperties"]:
@@ -1210,14 +1237,14 @@ class JSONTypeObject(JSONschema):
                 ret.minProperties = max(s1.minProperties, s2.minProperties)
                 ret.maxProperties = min(s1.maxProperties, s2.maxProperties)
                 #
-                if utils.is_bool(s1.additionalProperties) and utils.is_bool(s2.additionalProperties):
+                if utils.is_bool(s1.additionalProperties) and utils.is_bool(
+                    s2.additionalProperties
+                ):
                     ad = s1.additionalProperties and s2.additionalProperties
                 elif utils.is_dict(s1.additionalProperties):
-                    ad = s1.additionalProperties.meet(
-                        s2.additionalProperties)
+                    ad = s1.additionalProperties.meet(s2.additionalProperties)
                 elif utils.is_dict(s2.additionalProperties):
-                    ad = s2.additionalProperties.meet(
-                        s1.additionalProperties)
+                    ad = s2.additionalProperties.meet(s1.additionalProperties)
                 ret.additionalProperties = False if is_bot(ad) else ad
                 #
                 # For meet of properties and patternProperties,
@@ -1242,7 +1269,8 @@ class JSONTypeObject(JSONschema):
                 for k in s1.patternProperties.keys():
                     if k in s2.patternProperties.keys():
                         pProperties[k] = s1.patternProperties[k].meet(
-                            s2.patternProperties[k])
+                            s2.patternProperties[k]
+                        )
                     else:
                         pProperties[k] = s1.patternProperties[k]
                 for k in s2.patternProperties.keys():
@@ -1260,21 +1288,21 @@ class JSONTypeObject(JSONschema):
     def _isSubtype(self, s):
 
         def _isObjectSubtype(s1, s2):
-            ''' The general intuition is that a json object with more keys is more restrictive 
-                than a similar object with fewer keys. 
+            """The general intuition is that a json object with more keys is more restrictive
+            than a similar object with fewer keys.
 
-                E.g.: if corresponding keys have same schemas, then 
-                {name: {..}, age: {..}} <: {name: {..}}
-                {name: {..}, age: {..}} />: {name: {..}}
+            E.g.: if corresponding keys have same schemas, then
+            {name: {..}, age: {..}} <: {name: {..}}
+            {name: {..}, age: {..}} />: {name: {..}}
 
-                So the subtype checking is divided into two major parts:
-                I) lhs keys/patterns/additional should be a superset of rhs
-                II) schemas of comparable keys should have lhs <: rhs
-            '''
+            So the subtype checking is divided into two major parts:
+            I) lhs keys/patterns/additional should be a superset of rhs
+            II) schemas of comparable keys should have lhs <: rhs
+            """
             if s2.type != "object":
                 return False
             if s1.hasEnum():
-                return super(JSONTypeObject, s1).subtype_enum(s2)
+                return super().subtype_enum(s2)
             # Check properties range
             is_sub_interval = s1.interval in s2.interval
             if not is_sub_interval:
@@ -1297,10 +1325,10 @@ class JSONTypeObject(JSONschema):
             # #
 
             def get_schema_for_key(k, s):
-                ''' Searches for matching key and get the corresponding schema(s).
-                    Returns iterable because if a key matches more than one pattern, 
-                    that key schema has to match all corresponding patterns schemas.
-                '''
+                """Searches for matching key and get the corresponding schema(s).
+                Returns iterable because if a key matches more than one pattern,
+                that key schema has to match all corresponding patterns schemas.
+                """
                 if k in s.properties.keys():
                     return [s.properties[k]]
                 else:
@@ -1340,7 +1368,8 @@ class JSONTypeObject(JSONschema):
                                     return False
 
             extra_keys_on_rhs = set(s2.properties.keys()).difference(
-                s1.properties.keys())
+                s1.properties.keys()
+            )
             for k in extra_keys_on_rhs.copy():
                 if all(map(is_top, get_schema_for_key(k, s2))):
                     extra_keys_on_rhs.remove(k)
@@ -1349,10 +1378,10 @@ class JSONTypeObject(JSONschema):
                     if utils.regex_matches_string(k_, k):
                         extra_keys_on_rhs.remove(k)
             # if extra_keys_on_rhs:
-                # if not s1.additionalProperties:
-                #     print_db("?__05__")
-                #     return False
-                # else:
+            # if not s1.additionalProperties:
+            #     print_db("?__05__")
+            #     return False
+            # else:
             for k in extra_keys_on_rhs:
                 if is_bot(s1.additionalProperties):
                     continue
@@ -1364,13 +1393,14 @@ class JSONTypeObject(JSONschema):
                 #         continue
                 #     elif is_bot(s2.):
                 #         return False
-                    # print("-->", s)
-                    # if is_top(s) and not is_top(s2.properties[k]) or not s.isSubtype(s2.properties[k]):
-                    #     print_db("__06__")
-                    #     return False
+                # print("-->", s)
+                # if is_top(s) and not is_top(s2.properties[k]) or not s.isSubtype(s2.properties[k]):
+                #     print_db("__06__")
+                #     return False
 
             extra_patterns_on_rhs = set(s2.patternProperties.keys()).difference(
-                s1.patternProperties.keys())
+                s1.patternProperties.keys()
+            )
             for k in extra_patterns_on_rhs.copy():
                 for k_ in s1.patternProperties.keys():
                     if utils.regex_isSubset(k, k_):
@@ -1381,7 +1411,9 @@ class JSONTypeObject(JSONschema):
                     return False
                 else:
                     for k in extra_patterns_on_rhs:
-                        if not s1.additionalProperties.isSubtype(s2.patternProperties[k]):
+                        if not s1.additionalProperties.isSubtype(
+                            s2.patternProperties[k]
+                        ):
                             try:  # means regex k is infinite
                                 parse(k).cardinality()
                             except OverflowError:
@@ -1396,13 +1428,13 @@ class JSONTypeObject(JSONschema):
             #             if not s1.patternProperties[k_].isSubtype(s2.properties[k]):
             #                 return False
 
-                        # Now, lhs has a patternProperty which is subtype of a property on the rhs.
-                        # Ideally, at this point, I'd like to check that EVERY property matched by
-                        # this pattern also exist on the rhs.
-                        # from greenery.lego import parse
-                        # p = parse(k_)
-                        # try:
-                            # p.cardinality
+            # Now, lhs has a patternProperty which is subtype of a property on the rhs.
+            # Ideally, at this point, I'd like to check that EVERY property matched by
+            # this pattern also exist on the rhs.
+            # from greenery.lego import parse
+            # p = parse(k_)
+            # try:
+            # p.cardinality
 
             # first, matching properties should be subtype pairwise
             unmatched_lhs_props_keys = set(s1.properties.keys())
@@ -1427,7 +1459,9 @@ class JSONTypeObject(JSONschema):
                 for k_ in s2.patternProperties.keys():
                     if utils.regex_isSubset(k_, k):
                         unmatched_lhs_pProps_keys.discard(k)
-                        if not s1.patternProperties[k].isSubtype(s2.patternProperties[k_]):
+                        if not s1.patternProperties[k].isSubtype(
+                            s2.patternProperties[k_]
+                        ):
                             return False
             # third,
 
@@ -1463,12 +1497,12 @@ class JSONTypeObject(JSONschema):
         #     if s.__getattr__(k) != default:
         #         break
         # else:
-        if s.keys() & definitions.JtypesToKeywords['object']:
+        if s.keys() & definitions.JtypesToKeywords["object"]:
             raise UnsupportedNegatedObject(schema=s)
-        else: 
-             return boolToConstructor.get("anyOf")(
-            {"anyOf": get_default_types_except("object")})
-
+        else:
+            return boolToConstructor.get("anyOf")(
+                {"anyOf": get_default_types_except("object")}
+            )
 
 
 def JSONanyOfFactory(s):
@@ -1480,7 +1514,6 @@ def JSONanyOfFactory(s):
 
 
 class JSONanyOf(JSONschema):
-
     def __init__(self, s):
         super().__init__(s)
         self.type = "anyOf"
@@ -1573,7 +1606,7 @@ def JSONallOfFactory(s):
 #             anyofs.append(typeToConstructor.get(t_i)({"type": t_i}))
 #         anyofs.append(negTypeToConstructor.get(t)(s))
 #         return boolToConstructor.get("anyOf")({"anyOf": anyofs})
-    # return JSONanyOf({"anyOf": anyofs})
+# return JSONanyOf({"anyOf": anyofs})
 
 
 typeToConstructor = {
@@ -1583,13 +1616,10 @@ typeToConstructor = {
     "boolean": JSONTypeBoolean,
     "null": JSONTypeNull,
     "array": JSONTypeArray,
-    "object": JSONTypeObject
+    "object": JSONTypeObject,
 }
 
-boolToConstructor = {
-    "anyOf": JSONanyOfFactory,
-    "allOf": JSONallOfFactory
-}
+boolToConstructor = {"anyOf": JSONanyOfFactory, "allOf": JSONallOfFactory}
 
 
 def get_default_types_except(*args):

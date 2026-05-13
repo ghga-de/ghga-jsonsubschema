@@ -1,24 +1,25 @@
-'''
+"""
 Created on June 24, 2019
 @author: Andrew Habib
-'''
+"""
 
 import sys
+
 import jsonschema
 
 this = sys.modules[__name__]
 
-this.VALIDATOR = jsonschema.Draft4Validator     # Which schema validator draft to use
-this.PRINT_DB = False                           # Print debugging info?
-this.WARN_UNINHABITED = False                   # Enable uninhabited types warning?
+this.VALIDATOR = jsonschema.Draft4Validator  # Which schema validator draft to use
+this.PRINT_DB = False  # Print debugging info?
+this.WARN_UNINHABITED = False  # Enable uninhabited types warning?
 
 
 # API to set which schema validator draft to use
 def set_json_validator_version(v=jsonschema.Draft4Validator):
-    ''' Currently, our subtype checking supports json schema draft 4 only,
-        so VALIDATOR should not changed.
-        We prodive the method for future support of other json schema versions. '''
-
+    """Currently, our subtype checking supports json schema draft 4 only,
+    so VALIDATOR should not changed.
+    We prodive the method for future support of other json schema versions.
+    """
     this.VALIDATOR = v
 
 

@@ -1,22 +1,23 @@
-'''
+"""
 Created on June 24, 2019
 @author: Andrew Habib
-'''
+"""
 
 import copy
-import jsonschema
-import numbers
 import math
+import numbers
 import re
 import sys
+
+import jsonschema
 
 import jsonsubschema._constants as definitions
 import jsonsubschema._utils as utils
 from jsonsubschema._checkers import (
-    typeToConstructor,
-    boolToConstructor,
+    JSONbot,
     JSONtop,
-    JSONbot
+    boolToConstructor,
+    typeToConstructor,
 )
 from jsonsubschema.exceptions import UnsupportedEnumCanonicalization
 
@@ -100,7 +101,11 @@ def canonicalize_single_type(d):
     if t in definitions.Jtypes:
         # Remove irrelevant keywords
         for k, v in list(d.items()):
-            if k not in definitions.Jcommonkw and k not in definitions.JtypesToKeywords.get(t) and k not in definitions.JNonValidation:
+            if (
+                k not in definitions.Jcommonkw
+                and k not in definitions.JtypesToKeywords.get(t)
+                and k not in definitions.JNonValidation
+            ):
                 d.pop(k)
             elif utils.is_dict(v):
                 d[k] = canonicalize_dict(v, k)
@@ -132,10 +137,11 @@ def canonicalize_single_type(d):
 
 def canonicalize_list_of_types(d):
     t = set(d.get("type"))
-    if t == definitions.JallTypes and \
-        not set(d.keys()).intersection(definitions.JtypesRestrictionKeywords):
+    if t == definitions.JallTypes and not set(d.keys()).intersection(
+        definitions.JtypesRestrictionKeywords
+    ):
         return JSONtop()
-    
+
     anyofs = []
     for t_i in t:
         if t_i in definitions.Jtypes:
@@ -147,10 +153,10 @@ def canonicalize_list_of_types(d):
         # jsonschema validation in the begining prevents
         # reaching this case. So we don't need this.
         # else:
-            # print("Unknown schema type {} at: {}".format(t_i, t))
-            # print(d)
-            # print("Exiting...")
-            # sys.exit(1)
+        # print("Unknown schema type {} at: {}".format(t_i, t))
+        # print(d)
+        # print("Exiting...")
+        # sys.exit(1)
 
     # if len(anyofs) == 1:
     #     return anyofs[0]
@@ -165,7 +171,8 @@ def canonicalize_enum(d):
 
     d["enum"] = valid_vals
     actual_t = sorted(
-        set(map(lambda i: definitions.PyTypesToJtypes.get(type(i)), d.get("enum"))))
+        set(map(lambda i: definitions.PyTypesToJtypes.get(type(i)), d.get("enum")))
+    )
     if "type" in d:
         orig_t = d["type"]
         orig_t = set([orig_t]) if utils.is_str(orig_t) else set(orig_t)
@@ -174,9 +181,11 @@ def canonicalize_enum(d):
         d["type"] = actual_t
     return canonicalize_list_of_types(d)
 
+
 def canonicalize_const(d):
     d["enum"] = [d.pop("const")]
     return canonicalize_enum(d)
+
 
 def canonicalize_connectors(d):
     connectors = definitions.Jconnectors.intersection(d.keys())
@@ -197,8 +206,9 @@ def canonicalize_connectors(d):
             anyofs = []
             for i in range(len(d[c])):
                 one = [d[c][i]]
-                nots = [{"not": j} for j in d[c][:i]] + [{"not": j}
-                                                         for j in d[c][i+1:]]
+                nots = [{"not": j} for j in d[c][:i]] + [
+                    {"not": j} for j in d[c][i + 1 :]
+                ]
                 allofs = one + nots
                 anyofs.append({"allOf": allofs})
             return canonicalize_connectors({"anyOf": anyofs})
@@ -218,8 +228,9 @@ def canonicalize_connectors(d):
             allofs.append(canonicalize_dict({c: d[c]}))
             del d[c]
         if lhs_kw_without_connectors:
-            allofs.append(canonicalize_dict(
-                {k: d[k] for k in lhs_kw_without_connectors}))
+            allofs.append(
+                canonicalize_dict({k: d[k] for k in lhs_kw_without_connectors})
+            )
         return {"allOf": allofs}
         # return simplify_schema_and_embed_checkers({"allOf": allofs})
 
@@ -257,9 +268,9 @@ def canonicalize_not(d):
             # for i in negated_schema["allOf"]:
             #     anyofs.append(canonicalize_not({"not": i}))
             # return {"anyOf": anyofs}
-            return canonicalize_not({'not': canonicalize_connectors(negated_schema)})
+            return canonicalize_not({"not": canonicalize_connectors(negated_schema)})
 
-                #     anyofs.append(canonicalize_not({"not": i}))
+            #     anyofs.append(canonicalize_not({"not": i}))
         # Should not reach here. Should be canonicalized by now.
         # elif c == "oneOf":
         #     return canonicalize_not({"not": canonicalize_connectors(negated_schema)})
@@ -273,7 +284,7 @@ def rewrite_enum(d):
     ret = None
 
     if t == "string":
-        pattern = "|".join(map(lambda x: "^"+str(re.escape(x))+"$", enum))
+        pattern = "|".join(map(lambda x: "^" + str(re.escape(x)) + "$", enum))
         ret = {"type": "string", "pattern": pattern}
 
     if t == "integer":
@@ -281,19 +292,18 @@ def rewrite_enum(d):
         for i in enum:
             ret["anyOf"].append(
                 # {"type": "number", "minimum": i, "maximum": i, "multipleOf": 1}) # check test_numeric/test_join_mulof10
-                {"type": "integer", "minimum": i, "maximum": i})
+                {"type": "integer", "minimum": i, "maximum": i}
+            )
 
     if t == "number":
         ret = {"anyOf": []}
         for i in enum:
             if utils.is_int_equiv(i):
-                ret["anyOf"].append(
-                    {"type": "integer", "minimum": i, "maximum": i})
+                ret["anyOf"].append({"type": "integer", "minimum": i, "maximum": i})
             elif math.isnan(i):
                 ret["anyOf"].append({"type": "number", "enum": [_nan]})
             else:
-                ret["anyOf"].append(
-                    {"type": "number", "minimum": i, "maximum": i})
+                ret["anyOf"].append({"type": "number", "minimum": i, "maximum": i})
 
     if t == "boolean":
         # booleans are allowed to keep enums,
@@ -311,13 +321,14 @@ def rewrite_enum(d):
         # return canonicalize_dict(ret)
 
     # Unsupported cases of rewriting enums
-    elif t == 'array' or t == 'object':
+    elif t == "array" or t == "object":
         raise UnsupportedEnumCanonicalization(tau=t, schema=d)
 
 
 def simplify_schema_and_embed_checkers(s):
-    ''' This function assumes the schema s is already canonicalized. 
-        So it must be a dict '''
+    """This function assumes the schema s is already canonicalized.
+    So it must be a dict
+    """
     #
     if s == {} or not definitions.Jkeywords.intersection(s.keys()):
         top = JSONtop()
@@ -334,25 +345,32 @@ def simplify_schema_and_embed_checkers(s):
         if utils.is_dict(s["items"]):
             s["items"] = simplify_schema_and_embed_checkers(s["items"])
         elif utils.is_list(s["items"]):
-            s["items"] = [simplify_schema_and_embed_checkers(
-                i) for i in s["items"]]
+            s["items"] = [simplify_schema_and_embed_checkers(i) for i in s["items"]]
 
     if "additionalItems" in s and utils.is_dict(s["additionalItems"]):
-        s["additionalItems"] = simplify_schema_and_embed_checkers(
-            s["additionalItems"])
+        s["additionalItems"] = simplify_schema_and_embed_checkers(s["additionalItems"])
 
     # json.object specific
     if "properties" in s:
-        s["properties"] = dict([(k, simplify_schema_and_embed_checkers(v))
-                                for k, v in s["properties"].items()])
+        s["properties"] = dict(
+            [
+                (k, simplify_schema_and_embed_checkers(v))
+                for k, v in s["properties"].items()
+            ]
+        )
 
     if "patternProperties" in s:
-        s["patternProperties"] = dict([(k, simplify_schema_and_embed_checkers(
-            v)) for k, v in s["patternProperties"].items()])
+        s["patternProperties"] = dict(
+            [
+                (k, simplify_schema_and_embed_checkers(v))
+                for k, v in s["patternProperties"].items()
+            ]
+        )
 
     if "additionalProperties" in s and utils.is_dict(s["additionalProperties"]):
         s["additionalProperties"] = simplify_schema_and_embed_checkers(
-            s["additionalProperties"])
+            s["additionalProperties"]
+        )
 
     #
     if "type" in s:
