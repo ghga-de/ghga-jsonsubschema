@@ -17,19 +17,19 @@ jobs:
         id: checkout
         uses: actions/checkout@v5
 
-      - name: Common steps
-        id: common
-        uses: ghga-de/gh-action-common@v6
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: uv sync --extra dev
 
       - name: Run tests
         id: pytest
         run: |
-          export ${{ steps.common.outputs.CONFIG_YAML_ENV_VAR_NAME }}="${{ steps.common.outputs.CONFIG_YAML }}"
-
           pytest \
-            --cov="${{ steps.common.outputs.PACKAGE_NAME }}" \
+            --cov=jsonsubschema \
             --cov-report=xml \
             tests
 
