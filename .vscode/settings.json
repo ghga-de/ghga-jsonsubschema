@@ -1,0 +1,12 @@
+{
+    "[python]": {
+        "editor.rulers": [
+            88
+        ],
+        "editor.wordWrapColumn": 88
+    },
+    "flake8.args": [
+        "--max-line-length=88"
+    ],
+    "mypy-type-checker.importStrategy": "fromEnvironment"
+}
