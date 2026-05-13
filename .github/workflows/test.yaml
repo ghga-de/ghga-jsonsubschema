@@ -28,7 +28,7 @@ jobs:
       - name: Run tests
         id: pytest
         run: |
-          pytest \
+          uv run pytest \
             --cov=jsonsubschema \
             --cov-report=xml \
             tests
