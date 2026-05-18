@@ -1,16 +1,20 @@
-name: Run test suite and measure coverage
+name: Run test suite
 
 on: push
 
 jobs:
   tests:
-    name: Run test suite (Python ${{ matrix.python-version }})
+    name: Run tests (Python ${{ matrix.python-version }}${{ matrix.coverage && ', with coverage' || '' }})
 
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        python-version: ['3.13', '3.14']
+        include:
+          - python-version: '3.13'
+            coverage: true
+          - python-version: '3.14'
+            coverage: false
 
     steps:
       - name: Checkout repository
@@ -25,7 +29,8 @@ jobs:
       - name: Install dependencies
         run: uv sync --extra dev
 
-      - name: Run tests
+      - name: Run tests with coverage
+        if: matrix.coverage
         id: pytest
         run: |
           uv run pytest \
@@ -33,9 +38,14 @@ jobs:
             --cov-report=xml \
             tests
 
+      - name: Run tests without coverage
+        if: ${{ !matrix.coverage }}
+        id: pytest_no_cov
+        run: uv run pytest tests
+
       - name: Upload coverage to coveralls
         id: coveralls
-        if: matrix.python-version == '3.13'
+        if: matrix.coverage
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
