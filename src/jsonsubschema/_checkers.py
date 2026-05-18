@@ -437,6 +437,32 @@ class JSONTypeNumeric(JSONschema):
     def update_internal_state(self):
         self.build_interval_draft4()
 
+    @staticmethod
+    def _multipleof_compatible(lhs_multiple_of, rhs_multiple_of):
+        return (
+            lhs_multiple_of == rhs_multiple_of
+            or (lhs_multiple_of is not None and rhs_multiple_of is None)
+            or (
+                lhs_multiple_of is not None
+                and rhs_multiple_of is not None
+                and lhs_multiple_of % rhs_multiple_of == 0
+            )
+        )
+
+    @staticmethod
+    def _multipleof_compatible_integer_lhs(lhs_multiple_of, rhs_multiple_of):
+        return JSONTypeNumeric._multipleof_compatible(
+            lhs_multiple_of, rhs_multiple_of
+        ) or (lhs_multiple_of is None and rhs_multiple_of == 1)
+
+    @staticmethod
+    def _multipleof_compatible_integer_rhs(lhs_multiple_of, rhs_multiple_of):
+        return rhs_multiple_of is None or (
+            lhs_multiple_of is not None
+            and rhs_multiple_of is not None
+            and lhs_multiple_of % rhs_multiple_of == 0
+        )
+
     def _meet(self, s):
 
         def _meet_numeric(s1, s2):
@@ -547,15 +573,8 @@ class JSONTypeInteger(JSONTypeNumeric):
                 if not is_sub_interval:
                     print_db("num__00")
                     return False
-                if (
-                    (s1.multipleOf == s2.multipleOf)
-                    or (s1.multipleOf != None and s2.multipleOf == None)
-                    or (
-                        s1.multipleOf != None
-                        and s2.multipleOf != None
-                        and s1.multipleOf % s2.multipleOf == 0
-                    )
-                    or (s1.multipleOf == None and s2.multipleOf == 1)
+                if JSONTypeNumeric._multipleof_compatible_integer_lhs(
+                    s1.multipleOf, s2.multipleOf
                 ):
                     print_db("num__01")
                     return True
@@ -597,7 +616,7 @@ class JSONTypeInteger(JSONTypeNumeric):
                 for interv, m in interval_to_mulofs.items():
                     if x in interv:
                         if m:
-                            if any(x % i == 0 for i in m if i != None):
+                            if any(x % i == 0 for i in m if i is not None):
                                 break
                         else:
                             break
@@ -690,16 +709,7 @@ class JSONTypeNumber(JSONTypeNumeric):
                 if not is_sub_interval:
                     print_db("num__00")
                     return False
-                if (
-                    (s1.multipleOf == s2.multipleOf)
-                    or (s1.multipleOf != None and s2.multipleOf == None)
-                    or (
-                        s1.multipleOf != None
-                        and s2.multipleOf != None
-                        and s1.multipleOf % s2.multipleOf == 0
-                    )
-                    or (utils.is_int_equiv(s1.multipleOf) and s2.multipleOf == None)
-                ):
+                if JSONTypeNumeric._multipleof_compatible(s1.multipleOf, s2.multipleOf):
                     print_db("num__01")
                     return True
             elif s2.type == "integer":
@@ -708,11 +718,8 @@ class JSONTypeNumber(JSONTypeNumeric):
                     print_db("num__02")
                     return False
                 if utils.is_int_equiv(s1.multipleOf) and (
-                    s2.multipleOf == None
-                    or (
-                        s1.multipleOf != None
-                        and s2.multipleOf != None
-                        and s1.multipleOf % s2.multipleOf == 0
+                    JSONTypeNumeric._multipleof_compatible_integer_rhs(
+                        s1.multipleOf, s2.multipleOf
                     )
                 ):
                     print_db("num__03")
