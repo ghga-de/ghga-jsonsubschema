@@ -30,7 +30,7 @@ jobs:
         run: uv sync --extra dev
 
       - name: Run tests with coverage
-        if: matrix.coverage
+        if: ${{ matrix.coverage == true }}
         id: pytest
         run: |
           uv run pytest \
@@ -39,13 +39,13 @@ jobs:
             tests
 
       - name: Run tests without coverage
-        if: ${{ !matrix.coverage }}
+        if: ${{ matrix.coverage != true }}
         id: pytest_no_cov
         run: uv run pytest tests
 
       - name: Upload coverage to coveralls
         id: coveralls
-        if: matrix.coverage
+        if: ${{ matrix.coverage == true }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

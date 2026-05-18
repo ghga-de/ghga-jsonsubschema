@@ -677,11 +677,11 @@ class JSONTypeNumber(JSONTypeNumeric):
                     joined_interval = s1.interval | s2.interval
                     if utils.is_num(joined_interval.lower):
                         ret["minimum"] = joined_interval.lower
-                        if not joined_interval.left:
+                        if joined_interval.left == portion.OPEN:
                             ret["exclusiveMinimum"] = True
                     if utils.is_num(joined_interval.upper):
                         ret["maximum"] = joined_interval.upper
-                        if not joined_interval.right:
+                        if joined_interval.right == portion.OPEN:
                             ret["exclusiveMaximum"] = True
                     gcd = utils.gcd(s1.multipleOf, s2.multipleOf)
                     if utils.is_num(gcd) and gcd != 1:
