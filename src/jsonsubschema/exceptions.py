@@ -82,7 +82,8 @@ class UnsupportedNegatedArray(_SubtypeCheckError):
 #         self.tau = tau
 
 #     def __str__(self):
-#         return '{} is unsupported jsonschema type in schema: {}'.format(self.tau, self.schema)
+#         return '{} is unsupported jsonschema type in schema: {}'.format(
+#             self.tau, self.schema)
 
 
 # class UnsupportedSubtypeChecker(_Error):

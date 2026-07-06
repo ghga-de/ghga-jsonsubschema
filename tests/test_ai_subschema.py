@@ -90,7 +90,8 @@ nmf_schema = {
 
 tfidf_schema = {
     "$schema": "http://json-schema.org/draft-04/schema#",
-    "description": "Input data schema for training the TfidfVectorizer from scikit-learn.",
+    "description": "Input data schema for training the TfidfVectorizer "
+    "from scikit-learn.",
     "type": "object",
     "required": ["X"],
     "additionalProperties": False,
@@ -808,7 +809,8 @@ def test_dataset_op():
             # try:
             result = jsonsubschema.is_subschema(ds_schema, op_schema)
             # result = jsonsubschema.is_subschema(ds_schema, op_schema)
-            # assert result == expected[op_name][ds_name], f'dataset {ds_name} operator {op_name}'
+            # assert result == expected[op_name][ds_name], \
+            #     f'dataset {ds_name} operator {op_name}'
             assert result == expected[op_name][ds_name]
             count += 1
             # except Exception:
@@ -831,7 +833,8 @@ def test_dataset_op():
 #             # ds_schema = json.load(open(ds_file, "r"))
 #             # result = jsonsubschema.is_subschema(ds_schema, op_schema)
 
-#             # assert result == expected[op_name][ds_name], f'dataset {ds_name} operator {op_name}'
+#             # assert result == expected[op_name][ds_name], \
+#             #     f'dataset {ds_name} operator {op_name}'
 #             with self.subTest(f'dataset {ds_name} operator {op_name}: {i,j}'):
 #                 result = run_issubset(ds_file, op_file)
 #                 if result is True:

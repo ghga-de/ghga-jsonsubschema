@@ -114,9 +114,7 @@ def prepare_pattern_for_greenry(s):
     )  # strip non-escaped ^ that is not inside []
     s = re.sub(r"(?<!\\)((?:\\{2})*)\$", r"\g<1>", s)  # strip non-escaped $
     s = re.sub(r"(?<!\\)((?:\\{1})*)\\\^", r"\g<1>^", s)  # strip \ before ^
-    s = re.sub(r"(?<!\\)((?:\\{1})*)\\\$", r"\g<1>$", s)  # strip \ before $
-
-    return s
+    return re.sub(r"(?<!\\)((?:\\{1})*)\\\$", r"\g<1>$", s)  # strip \ before $
 
 
 def regex_unanchor(p):
@@ -143,8 +141,7 @@ def regex_matches_string(regex=None, s=None):
     """Return whether ``s`` matches ``regex`` (an empty ``regex`` matches anything)."""
     if regex:
         return parse(regex).matches(s)
-    else:
-        return True
+    return True
 
 
 def regex_meet(s1, s2):
@@ -156,12 +153,11 @@ def regex_meet(s1, s2):
     if s1 and s2:
         ret = parse(s1) & parse(s2)
         return str(ret.reduce()) if not ret.empty() else None
-    elif s1:
+    if s1:
         return s1
-    elif s2:
+    if s2:
         return s2
-    else:
-        return None
+    return None
 
 
 def regex_is_subset(s1, s2):
@@ -186,6 +182,7 @@ def regex_is_subset(s1, s2):
         return True
     elif s2:
         return parse(s2).equivalent(parse(".*"))
+    return None
 
 
 def string_range_to_regex(min, max):
@@ -219,14 +216,12 @@ def lcm(x, y):
     if x in bad_values:
         if y in bad_values:
             return None
-        else:
-            return y
-    elif y in bad_values:
+        return y
+    if y in bad_values:
         return x
-    elif is_int(x) and is_int(y):
+    if is_int(x) and is_int(y):
         return x * y / math.gcd(int(x), int(y))
-    else:
-        return x * y / float_gcd(x, y)
+    return x * y / float_gcd(x, y)
 
 
 def gcd(x, y):
@@ -239,10 +234,9 @@ def gcd(x, y):
     ]  # portion.inf, -portion.inf, None]
     if x in bad_values or y in bad_values:
         return None
-    elif is_int(x) and is_int(y):
+    if is_int(x) and is_int(y):
         return math.gcd(int(x), int(y))
-    else:
-        return float_gcd(x, y)
+    return float_gcd(x, y)
 
 
 def float_gcd(a, b):
@@ -289,7 +283,7 @@ def generate_range_with_not_multiple_of_and(range_, neg_mul_of):
 
 
 def generate_range_with_multipleof(range_, pos, neg):
-    """Yield the values in ``range_`` divisible by some ``pos`` and no ``neg`` factor."""
+    """Yield ``range_`` values divisible by a ``pos`` and no ``neg`` factor."""
     return generate_range_with_not_multiple_of_and(
         generate_range_with_multiple_of_or(range_, pos), neg
     )

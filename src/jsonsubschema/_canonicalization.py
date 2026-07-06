@@ -45,7 +45,7 @@ def canonicalize_schema(obj):
     return canonical_schema
 
 
-def canonicalize_dict(d, outer_key=None):  # noqa: C901, PLR0911, PLR0912
+def canonicalize_dict(d, outer_key=None):  # noqa: C901, PLR0911
     """Canonicalize a schema given as a dict, dispatching on its keywords.
 
     ``outer_key`` is the key under which ``d`` appears in its parent schema;
@@ -92,17 +92,16 @@ def canonicalize_dict(d, outer_key=None):  # noqa: C901, PLR0911, PLR0912
 
     if has_connectors:
         return canonicalize_connectors(d)
-    elif "enum" in d:
+    if "enum" in d:
         return canonicalize_enum(d)
-    elif "const" in d:
+    if "const" in d:
         return canonicalize_const(d)
-    elif utils.is_str(t):
+    if utils.is_str(t):
         return canonicalize_single_type(d)
-    elif utils.is_list(t):
+    if utils.is_list(t):
         return canonicalize_list_of_types(d)
-    else:
-        d["type"] = sorted(definitions.Jtypes)
-        return canonicalize_list_of_types(d)
+    d["type"] = sorted(definitions.Jtypes)
+    return canonicalize_list_of_types(d)
 
 
 def canonicalize_single_type(d):
@@ -133,8 +132,8 @@ def canonicalize_single_type(d):
                     d[k] = [canonicalize_dict(i) for i in v]
         if "enum" in d:
             return rewrite_enum(d)
-        else:
-            return d
+        return d
+    return None
 
     # jsonschema validation in the begining prevents
     # reaching this case. So we don't need this.
@@ -189,7 +188,7 @@ def canonicalize_enum(d):
     )
     if "type" in d:
         orig_t = d["type"]
-        orig_t = set([orig_t]) if utils.is_str(orig_t) else set(orig_t)
+        orig_t = {orig_t} if utils.is_str(orig_t) else set(orig_t)
         d["type"] = orig_t.intersection(actual_t)
     else:
         d["type"] = actual_t
@@ -203,9 +202,10 @@ def canonicalize_const(d):
 
 
 def canonicalize_connectors(d):
-    """Canonicalize a schema built from boolean connectors (``anyOf``/``allOf``/``oneOf``/``not``).
+    """Canonicalize a schema built from boolean connectors.
 
-    A ``oneOf`` is rewritten in terms of ``anyOf``/``allOf``/``not``, and a
+    The connectors are ``anyOf``/``allOf``/``oneOf``/``not``. A ``oneOf`` is
+    rewritten in terms of ``anyOf``/``allOf``/``not``, and a
     connector combined with other keywords is first split into an ``allOf``.
     """
     connectors = definitions.Jconnectors.intersection(d.keys())
@@ -220,7 +220,7 @@ def canonicalize_connectors(d):
             d["not"] = canonicalize_dict(d["not"])
             return canonicalize_not(d)
 
-        elif connector == "oneOf":
+        if connector == "oneOf":
             if len(d[connector]) == 1:
                 return canonicalize_dict(d[connector].pop())
             any_of_schemas = []
@@ -235,24 +235,21 @@ def canonicalize_connectors(d):
 
         # Here, the connector is either allOf or oneOf
         # So we better simplify them before proceeding more.
-        else:
-            d[connector] = [canonicalize_dict(schema) for schema in d[connector]]
-            # return d
-            simplified = simplify_schema_and_embed_checkers(d)
-            return simplified
+        d[connector] = [canonicalize_dict(schema) for schema in d[connector]]
+        # return d
+        return simplify_schema_and_embed_checkers(d)
 
     # Connector + other keywords. Combine them first.
-    else:
-        all_of_schemas = []
-        for connector in connectors:
-            all_of_schemas.append(canonicalize_dict({connector: d[connector]}))
-            del d[connector]
-        if lhs_kw_without_connectors:
-            all_of_schemas.append(
-                canonicalize_dict({k: d[k] for k in lhs_kw_without_connectors})
-            )
-        return {"allOf": all_of_schemas}
-        # return simplify_schema_and_embed_checkers({"allOf": allofs})
+    all_of_schemas = []
+    for connector in connectors:
+        all_of_schemas.append(canonicalize_dict({connector: d[connector]}))
+        del d[connector]
+    if lhs_kw_without_connectors:
+        all_of_schemas.append(
+            canonicalize_dict({k: d[k] for k in lhs_kw_without_connectors})
+        )
+    return {"allOf": all_of_schemas}
+    # return simplify_schema_and_embed_checkers({"allOf": allofs})
 
 
 def canonicalize_not(d):
@@ -280,15 +277,15 @@ def canonicalize_not(d):
         if connector == "not":
             return negated_schema["not"]
 
-        elif connector == "anyOf":
-            all_of_schemas = []
-            for schema in negated_schema["anyOf"]:
-                all_of_schemas.append(canonicalize_not({"not": schema}))
+        if connector == "anyOf":
+            all_of_schemas = [
+                canonicalize_not({"not": schema}) for schema in negated_schema["anyOf"]
+            ]
             return {"allOf": all_of_schemas}
 
         # Should not reach here. Should be canonicalized and
         # simplified by now.
-        elif connector == "allOf":
+        if connector == "allOf":
             # anyofs = []
             # for i in negated_schema["allOf"]:
             #     anyofs.append(canonicalize_not({"not": i}))
@@ -301,6 +298,7 @@ def canonicalize_not(d):
         #     return canonicalize_not({"not": canonicalize_connectors(negated_schema)})
     else:
         sys.exit(">>>>>> Ewwwww! Shouldn't be here during canonicalization. <<<<<<")
+    return None
 
 
 def rewrite_enum(d):
@@ -343,19 +341,17 @@ def rewrite_enum(d):
     return ret
 
 
-def simplify_schema_and_embed_checkers(s):  # noqa: C901, PLR0912
+def simplify_schema_and_embed_checkers(s):  # noqa: C901, PLR0911, PLR0912
     """This function assumes the schema s is already canonicalized.
     So it must be a dict
     """
     if s == {} or not definitions.Jkeywords.intersection(s.keys()):
-        top = JSONtop()
+        return JSONtop()
         # top.update(s)
-        return top
     if "not" in s and s["not"] == {}:
-        bot = JSONbot()
+        return JSONbot()
         # del s["not"]
         # bot.update(s)
-        return bot
 
     # json.array specific
     if "items" in s:
@@ -369,20 +365,15 @@ def simplify_schema_and_embed_checkers(s):  # noqa: C901, PLR0912
 
     # json.object specific
     if "properties" in s:
-        s["properties"] = dict(
-            [
-                (k, simplify_schema_and_embed_checkers(v))
-                for k, v in s["properties"].items()
-            ]
-        )
+        s["properties"] = {
+            k: simplify_schema_and_embed_checkers(v) for k, v in s["properties"].items()
+        }
 
     if "patternProperties" in s:
-        s["patternProperties"] = dict(
-            [
-                (k, simplify_schema_and_embed_checkers(v))
-                for k, v in s["patternProperties"].items()
-            ]
-        )
+        s["patternProperties"] = {
+            k: simplify_schema_and_embed_checkers(v)
+            for k, v in s["patternProperties"].items()
+        }
 
     if "additionalProperties" in s and utils.is_dict(s["additionalProperties"]):
         s["additionalProperties"] = simplify_schema_and_embed_checkers(
@@ -402,3 +393,4 @@ def simplify_schema_and_embed_checkers(s):  # noqa: C901, PLR0912
     if "allOf" in s:
         allofs = [simplify_schema_and_embed_checkers(i) for i in s["allOf"]]
         return bool_to_constructor["allOf"]({"allOf": allofs})
+    return None

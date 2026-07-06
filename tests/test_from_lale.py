@@ -6534,7 +6534,8 @@ def test_82():
                 "minimumForOptimizer": 2,
                 "maximumForOptimizer": 8,
             },
-            # "affinity": {"enum": ["euclidean", "l1", "l2", "manhattan", "cosine", "precomputed"]},
+            # "affinity": {"enum":
+            #     ["euclidean", "l1", "l2", "manhattan", "cosine", "precomputed"]},
             "compute_full_tree": {"enum": ["auto"]},
             "linkage": {"enum": ["complete", "average", "single"]},
         },
