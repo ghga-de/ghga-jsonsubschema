@@ -26,6 +26,7 @@ BOT: dict = {"not": {}}
 
 
 def canonicalize_schema(obj):
+    """Validate and rewrite ``obj`` into an equivalent canonical JSON schema."""
     # {"enum": []} is uninhabited; intercept before validate_schema rejects it
     if utils.is_dict(obj) and obj.get("enum") == []:
         return BOT
@@ -45,6 +46,11 @@ def canonicalize_schema(obj):
 
 
 def canonicalize_dict(d, outer_key=None):  # noqa: C901, PLR0911, PLR0912
+    """Canonicalize a schema given as a dict, dispatching on its keywords.
+
+    ``outer_key`` is the key under which ``d`` appears in its parent schema;
+    it is used to leave dict containers such as ``properties`` untouched.
+    """
     # not actually needed, but for testing
     # canonicalization to work properly;
     if d in ({}, {"not": {}}):
@@ -100,6 +106,7 @@ def canonicalize_dict(d, outer_key=None):  # noqa: C901, PLR0911, PLR0912
 
 
 def canonicalize_single_type(d):
+    """Canonicalize a schema with a single ``type``, dropping irrelevant keywords."""
     t = d.get("type")
     if t in definitions.Jtypes:
         # Remove irrelevant keywords
@@ -139,6 +146,7 @@ def canonicalize_single_type(d):
 
 
 def canonicalize_list_of_types(d):
+    """Canonicalize a schema with a list of ``type`` values into an ``anyOf``."""
     schema_types = set(d.get("type"))
     if schema_types == definitions.JallTypes and not set(d.keys()).intersection(
         definitions.JtypesRestrictionKeywords
@@ -168,6 +176,7 @@ def canonicalize_list_of_types(d):
 
 
 def canonicalize_enum(d):
+    """Canonicalize an ``enum`` schema, keeping only values valid against ``d``."""
     valid_vals = utils.get_valid_enum_vals(d["enum"], d)
     if not valid_vals:
         return BOT
@@ -188,11 +197,17 @@ def canonicalize_enum(d):
 
 
 def canonicalize_const(d):
+    """Canonicalize a ``const`` schema by rewriting it as a single-value ``enum``."""
     d["enum"] = [d.pop("const")]
     return canonicalize_enum(d)
 
 
 def canonicalize_connectors(d):
+    """Canonicalize a schema built from boolean connectors (``anyOf``/``allOf``/``oneOf``/``not``).
+
+    A ``oneOf`` is rewritten in terms of ``anyOf``/``allOf``/``not``, and a
+    connector combined with other keywords is first split into an ``allOf``.
+    """
     connectors = definitions.Jconnectors.intersection(d.keys())
     lhs_kw = definitions.Jkeywords.intersection(d.keys())
     lhs_kw_without_connectors = lhs_kw.difference(connectors)
@@ -241,6 +256,11 @@ def canonicalize_connectors(d):
 
 
 def canonicalize_not(d):
+    """Canonicalize a negated (``not``) schema by pushing the negation inward.
+
+    Double negations cancel and De Morgan's laws turn negated connectors into
+    the dual connector of negated operands.
+    """
     # d: {} has a 'not' schema
     negated_schema = d["not"]
 
@@ -284,6 +304,11 @@ def canonicalize_not(d):
 
 
 def rewrite_enum(d):
+    """Rewrite a typed ``enum`` schema into range/pattern constraints per value.
+
+    Array and object enums are not supported and raise
+    :class:`UnsupportedEnumCanonicalization`.
+    """
     t = d.get("type")
     enum = d.get("enum")
 

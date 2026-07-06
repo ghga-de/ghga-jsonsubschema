@@ -14,18 +14,20 @@ __all__ = [
 
 
 class _UnsupportedCase(Exception):
-    pass
+    """Base class for schemas that jsonsubschema cannot handle."""
 
 
 class _CanonicalizationError(_UnsupportedCase):
-    pass
+    """Raised when a schema cannot be canonicalized."""
 
 
 class _SubtypeCheckError(_UnsupportedCase):
-    pass
+    """Raised when a subtype check cannot be performed."""
 
 
 class UnsupportedRecursiveRef(_CanonicalizationError):
+    """Raised when a schema uses an unsupported recursive/circular ``$ref``."""
+
     def __init__(self, schema, which_side):
         self.schema = schema
         self.which_side = which_side
@@ -36,6 +38,8 @@ class UnsupportedRecursiveRef(_CanonicalizationError):
 
 
 class UnsupportedEnumCanonicalization(_CanonicalizationError):
+    """Raised when an enum schema of an unsupported type cannot be canonicalized."""
+
     def __init__(self, tau, schema):
         self.tau = tau
         self.schema = schema
@@ -46,6 +50,8 @@ class UnsupportedEnumCanonicalization(_CanonicalizationError):
 
 
 class UnsupportedNegatedObject(_SubtypeCheckError):
+    """Raised when negating an object schema is not supported."""
+
     def __init__(self, schema):
         self.schema = schema
 
@@ -55,6 +61,8 @@ class UnsupportedNegatedObject(_SubtypeCheckError):
 
 
 class UnsupportedNegatedArray(_SubtypeCheckError):
+    """Raised when negating an array schema is not supported."""
+
     def __init__(self, schema):
         self.schema = schema
 

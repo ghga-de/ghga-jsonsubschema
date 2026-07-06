@@ -122,11 +122,6 @@ max-complexity = 10
     "SIM",
     "D",
 ]
-# TODO: Add proper docstrings to all public methods and classes in src/, then remove these ignores.
-"src/jsonsubschema/*.py" = [
-    "D101",  # Missing docstring in public class
-    "D102",  # Missing docstring in public method
-]
 "tests/*" = [
     "S",
     "SIM",
