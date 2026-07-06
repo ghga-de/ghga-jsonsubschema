@@ -1617,10 +1617,12 @@ class JSONanyOf(JSONschema):
 
     def update_internal_state(self):
         """Flatten nested ``anyOf`` members into this union."""
-        for d_i in self.anyOf:
-            if "anyOf" in d_i:
-                self.anyOf.extend(d_i.get("anyOf", []))
+        # Mutate self.anyOf in place: it is the same list object as
+        # self["anyOf"], and rebinding the attribute would desync the two.
+        while nested := [d_i for d_i in self.anyOf if "anyOf" in d_i]:
+            for d_i in nested:
                 self.anyOf.remove(d_i)
+                self.anyOf.extend(d_i.get("anyOf", []))
 
     def _is_uninhabited(self):
         """Return whether every member of the union is uninhabited."""

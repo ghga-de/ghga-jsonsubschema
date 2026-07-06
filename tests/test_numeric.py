@@ -377,7 +377,6 @@ def test_integer_join_mulof9():
     assert not is_subschema(s2, s1)
 
 
-# @unittest.skip("Corner case of multipleOf") # check canonicalization/rewrite_enum
 def test_integer_join_mulof10():
     s1 = {"enum": [1, 3, 5, 7, 9, 10]}
     s2 = {
@@ -617,13 +616,12 @@ def test_decimal1():
 
 
 def test_not1():
+    s1 = {"not": {"type": "integer", "minimum": 10, "maximum": 20}}
+    s2 = {"not": {"minimum": 10, "maximum": 20}}
 
-    pass
-
-    # with self.subTest('LHS < RHS'):
-    #     self.assertFalse(is_subschema(s1, s1))
-    # with self.subTest('RHS > LHS'):
-    #     self.assertTrue(is_subschema(s2, s1))
+    # s1 also accepts non-numbers (and non-integer numbers), s2 does not
+    assert not is_subschema(s1, s2)
+    assert is_subschema(s2, s1)
 
 
 def test_not_number_minimum():

@@ -95,6 +95,10 @@ This fork is based on version 0.0.8 of [IBM/jsonsubschema](https://github.com/ib
 * Packaging uses more modern conventions.
 * Tests have been converted from `unittest` to `pytest`.
 * An empty `enum` is now treated as an uninhabited schema.
+* Bugs inherited from upstream have been fixed: negating a numeric schema now
+  respects `exclusiveMinimum`/`exclusiveMaximum`, and nested `anyOf` unions
+  are now fully flattened (previously, adjacent nested unions could make two
+  equivalent schemas compare as unrelated).
 
 ## License
 
