@@ -47,6 +47,8 @@ class JSONschema(dict, metaclass=UninhabitedMeta):
     per-type behavior via the ``_meet``, ``_join`` and ``_is_subtype`` hooks.
     """
 
+    type: str  # the JSON type ("integer", ...) or connector kind ("anyOf", ...)
+
     def __init__(self, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
@@ -446,6 +448,9 @@ class JSONTypeNumeric(JSONschema):
         self.exclusiveMinimum = self.get("exclusiveMinimum", False)
         self.exclusiveMaximum = self.get("exclusiveMaximum", False)
         self.multipleOf = self.get("multipleOf", None)
+        # "number but not an integer": negating an integer schema embeds the
+        # standard fragment {"not": {"multipleOf": 1}} into the number schema
+        self.notInteger = self.get("not") == {"multipleOf": 1}
         self.interval = (
             portion.empty()
         )  # set by build_interval_draft4() via update_internal_state
@@ -455,14 +460,63 @@ class JSONTypeNumeric(JSONschema):
         raise NotImplementedError
 
     def _is_uninhabited(self):
-        """Return whether the interval is empty or ``multipleOf`` exceeds the max."""
-        return self.interval.empty or (
-            utils.is_num(self.multipleOf) and self.multipleOf > self.maximum
-        )
+        """Return whether the interval is empty or the constraints conflict."""
+        if self.notInteger and (
+            self.type == "integer"
+            or utils.is_int_equiv(self.multipleOf)
+            or (
+                not self.interval.empty
+                and self.interval.lower == self.interval.upper
+                and utils.is_int_equiv(self.interval.lower)
+            )
+        ):
+            # every admitted value would have to be an integer
+            return True
+        if self.interval.empty:
+            return True
+        if utils.is_num(self.multipleOf):
+            # for integers, the admitted values are the integer-valued
+            # multiples of the factor
+            step = (
+                utils.integer_valued_multiple_step(self.multipleOf)
+                if self.type == "integer"
+                else self.multipleOf
+            )
+            return not utils.interval_contains_multiple_of(self.interval, step)
+        return False
 
     def update_internal_state(self):
         """Cache the numeric interval via ``build_interval_draft4``."""
+        if (
+            self.notInteger
+            and utils.is_num(self.multipleOf)
+            and not utils.is_int_equiv(self.multipleOf)
+        ):
+            # the meet/subtype rules for not-integer schemas assume there is
+            # no fractional multipleOf; fail loudly instead of approximating
+            raise UnsupportedNegatedNumeric(schema=self)
         self.build_interval_draft4()
+
+    def single_value(self):
+        """Return the only value in the interval, or ``None`` if not degenerate."""
+        if not self.interval.empty and self.interval.lower == self.interval.upper:
+            return self.interval.lower
+        return None
+
+    @staticmethod
+    def _subtype_by_values(s1, s2):
+        """Return an exact subtype verdict for value-enumerable schemas.
+
+        Schemas restricted by an ``enum`` or admitting only a single value
+        are decided by validating their values against ``s2``. Returns
+        ``None`` when ``s1`` is not value-enumerable.
+        """
+        if s1.has_enum():
+            return s1.subtype_enum(s2)
+        value = s1.single_value()
+        if value is not None:
+            return bool(utils.get_valid_enum_vals([value], s2))
+        return None
 
     @staticmethod
     def _multipleof_compatible(lhs_multiple_of, rhs_multiple_of):
@@ -479,10 +533,19 @@ class JSONTypeNumeric(JSONschema):
 
     @staticmethod
     def _multipleof_compatible_integer_lhs(lhs_multiple_of, rhs_multiple_of):
-        """Like ``_multipleof_compatible`` but for an integer left-hand side."""
+        """Like ``_multipleof_compatible`` but for an integer left-hand side.
+
+        Every integer is a multiple of ``1/q`` (e.g. of ``0.5``), which is
+        the case exactly when the integer-valued multiples of the right-hand
+        factor have a spacing of 1.
+        """
         return JSONTypeNumeric._multipleof_compatible(
             lhs_multiple_of, rhs_multiple_of
-        ) or (lhs_multiple_of is None and rhs_multiple_of == 1)
+        ) or (
+            lhs_multiple_of is None
+            and rhs_multiple_of is not None
+            and utils.integer_valued_multiple_step(rhs_multiple_of) == 1
+        )
 
     @staticmethod
     def _multipleof_compatible_integer_rhs(lhs_multiple_of, rhs_multiple_of):
@@ -493,39 +556,51 @@ class JSONTypeNumeric(JSONschema):
             and lhs_multiple_of % rhs_multiple_of == 0
         )
 
+    @staticmethod
+    def _interval_to_bounds(interval):
+        """Return the minimum/maximum keywords describing ``interval``."""
+        ret: dict = {}
+        if utils.is_num(interval.lower):
+            ret["minimum"] = interval.lower
+            if interval.left == portion.OPEN:
+                ret["exclusiveMinimum"] = True
+        if utils.is_num(interval.upper):
+            ret["maximum"] = interval.upper
+            if interval.right == portion.OPEN:
+                ret["exclusiveMaximum"] = True
+        return ret
+
     def _meet(self, s):
         """Meet with ``s``, intersecting ranges and combining ``multipleOf`` factors."""
 
         def _meet_numeric(s1, s2):
-            if s1.type in definitions.Jnumeric and s2.type in definitions.Jnumeric:
-                ret = {}
+            if (
+                s1.type not in definitions.Jnumeric
+                or s2.type not in definitions.Jnumeric
+            ):
+                return JSONbot()
+            not_integer = s1.notInteger or s2.notInteger
+            if not_integer and (s1.type == "integer" or s2.type == "integer"):
+                # no integer is a non-integer number
+                return JSONbot()
 
-                # intersect the cached intervals so that exclusive
-                # minimum/maximum bounds are honored
-                interval = s1.interval & s2.interval
-                if interval.empty:
-                    return JSONbot()
+            # intersect the cached intervals so that exclusive
+            # minimum/maximum bounds are honored
+            interval = s1.interval & s2.interval
+            if interval.empty:
+                return JSONbot()
 
-                if utils.is_num(interval.lower):
-                    ret["minimum"] = interval.lower
-                    if interval.left == portion.OPEN:
-                        ret["exclusiveMinimum"] = True
+            ret = JSONTypeNumeric._interval_to_bounds(interval)
+            if not_integer:
+                ret["not"] = {"multipleOf": 1}
+            mul_of = utils.lcm(s1.multipleOf, s2.multipleOf)
+            if mul_of:
+                ret["multipleOf"] = mul_of
 
-                if utils.is_num(interval.upper):
-                    ret["maximum"] = interval.upper
-                    if interval.right == portion.OPEN:
-                        ret["exclusiveMaximum"] = True
-
-                mul_of = utils.lcm(s1.multipleOf, s2.multipleOf)
-                if mul_of:
-                    ret["multipleOf"] = mul_of
-
-                if s1.type == s2.type == "number":
-                    return JSONTypeNumber(ret)
-                # case one of them or both are integers
-                return JSONTypeInteger(ret)
-
-            return JSONbot()
+            if s1.type == s2.type == "number":
+                return JSONTypeNumber(ret)
+            # case one of them or both are integers
+            return JSONTypeInteger(ret)
 
         return super().meet_handle_rhs(s, _meet_numeric)
 
@@ -533,6 +608,70 @@ class JSONTypeNumeric(JSONschema):
         """Join with ``s`` as an ``anyOf`` (e.g. joining an integer with a number)."""
         # join integer with number
         return JSONanyOf({"anyOf": [self, s]})
+
+    def is_subtype_handle_rhs(self, s, is_subtype_cb):
+        """Dispatch the numeric subtype check, handling union right-hand sides.
+
+        A union produced by negating a schema records the negated schema, so
+        the check reduces to an emptiness test of the meet with it. Other
+        unions involving not-integer schemas need an exact coverage check of
+        this schema against the union members, since no single member needs
+        to contain it as a whole.
+        """
+        if s.is_boolean() and s.type == "anyOf":
+            if self.has_enum():
+                # validating the enum values against the whole union is exact
+                # even when they are spread over several union members
+                return self.subtype_enum(s)
+            if getattr(s, "complementOf", None) is not None:
+                # self <: not(X) holds iff meet(self, X) is uninhabited
+                return is_bot(self.meet(s.complementOf))
+            if self.notInteger or any(getattr(i, "notInteger", False) for i in s.anyOf):
+                if any(is_subtype_cb(self, i) for i in s.anyOf):
+                    return True
+                return self._is_covered_by_numeric_union(s)
+        return super().is_subtype_handle_rhs(s, is_subtype_cb)
+
+    def _is_covered_by_numeric_union(self, s):
+        """Return whether the union ``s`` covers every value of this schema.
+
+        This is exact for schemas without ``multipleOf``: the non-integer
+        values must be covered by the plain number and not-integer members
+        and the integer values by the plain number and integer members.
+        Unions mixing not-integer schemas with ``multipleOf`` constraints
+        cannot be decided and raise ``UnsupportedNegatedNumeric``.
+        """
+        members = [i for i in s.anyOf if i.type in definitions.Jnumeric]
+        if utils.is_num(self.multipleOf) or any(
+            utils.is_num(i.multipleOf) for i in members
+        ):
+            raise UnsupportedNegatedNumeric(schema=self)
+
+        plain_numbers = portion.empty()
+        non_integers = portion.empty()
+        integers = portion.empty()
+        for member in members:
+            if member.type == "integer":
+                integers |= member.interval
+            elif member.notInteger:
+                non_integers |= member.interval
+            else:
+                plain_numbers |= member.interval
+
+        if self.type == "integer":
+            return not utils.interval_contains_integer(
+                self.interval - plain_numbers - integers
+            )
+        if not utils.interval_diff_is_integer_points(
+            self.interval, plain_numbers | non_integers
+        ):
+            # some non-integer value is not covered
+            return False
+        if self.notInteger:
+            return True
+        return not utils.interval_contains_integer(
+            self.interval - plain_numbers - integers
+        )
 
 
 class JSONTypeInteger(JSONTypeNumeric):
@@ -604,20 +743,22 @@ class JSONTypeInteger(JSONTypeNumeric):
         """Return whether this integer schema is a subtype of ``s``."""
 
         def _is_integer_subtype(s1, s2):
-            if s2.type in definitions.Jnumeric:
-                if s1.has_enum():
-                    return super().subtype_enum(s2)
-                is_sub_interval = s1.interval in s2.interval
-                if not is_sub_interval:
-                    print_db("num__00")
-                    return False
-                if JSONTypeNumeric._multipleof_compatible_integer_lhs(
-                    s1.multipleOf, s2.multipleOf
-                ):
-                    print_db("num__01")
-                    return True
-            else:
+            if s2.type not in definitions.Jnumeric:
                 return False
+            verdict = JSONTypeNumeric._subtype_by_values(s1, s2)
+            if verdict is not None:
+                return verdict
+            if s2.notInteger:
+                print_db("num__05")
+                return False
+            if s1.interval not in s2.interval:
+                print_db("num__00")
+                return False
+            if JSONTypeNumeric._multipleof_compatible_integer_lhs(
+                s1.multipleOf, s2.multipleOf
+            ):
+                print_db("num__01")
+                return True
             return None
 
         return super().is_subtype_handle_rhs(s, _is_integer_subtype)
@@ -669,38 +810,60 @@ class JSONTypeInteger(JSONTypeNumeric):
         return None
 
     @staticmethod
-    def neg(s):
-        """Return the complement of the integer schema ``s`` if representable.
+    def _integer_bounds(s):
+        """Return the inclusive integer bounds ``(lo, hi)`` of the schema ``s``.
 
-        Only integer schemas admitting at most one value can be negated
-        exactly: their complement is everything except that number. Any wider
-        integer schema's complement also contains the non-integer numbers
-        between the admitted integers (e.g. ``10.5``), which the checker
-        language cannot express, so those raise ``UnsupportedNegatedNumeric``
-        instead of yielding unsound subtype verdicts.
+        Either bound is ``None`` when the schema does not constrain it.
         """
-        if "multipleOf" not in s and "minimum" in s and "maximum" in s:
+        lo = hi = None
+        if "minimum" in s:
             if s.get("exclusiveMinimum"):
                 lo = math.floor(s["minimum"]) + 1
             else:
                 lo = math.ceil(s["minimum"])
+        if "maximum" in s:
             if s.get("exclusiveMaximum"):
                 hi = math.ceil(s["maximum"]) - 1
             else:
                 hi = math.floor(s["maximum"])
-            if lo > hi:  # uninhabited, so the complement is everything
-                return JSONtop()
-            if lo == hi:
-                return bool_to_constructor["anyOf"](
-                    {
-                        "anyOf": [
-                            *get_default_types_except("number", "integer"),
-                            JSONTypeNumber({"maximum": lo, "exclusiveMaximum": True}),
-                            JSONTypeNumber({"minimum": lo, "exclusiveMinimum": True}),
-                        ]
-                    }
-                )
-        raise UnsupportedNegatedNumeric(schema=s)
+        return lo, hi
+
+    @staticmethod
+    def neg(s):
+        """Return the exact complement of the integer schema ``s``.
+
+        The complement consists of all non-numeric values, the numbers that
+        are not integers (embedded as ``{"not": {"multipleOf": 1}}``), and
+        the integers outside the schema's bounds. Negating an integer
+        ``multipleOf`` schema would additionally need "integer but not a
+        multiple of k", which the checker language cannot express, so that
+        case raises ``UnsupportedNegatedNumeric`` instead of yielding
+        unsound subtype verdicts. A trivial ``multipleOf`` of 1 does not
+        constrain integers and is simply ignored.
+        """
+        if s.get("multipleOf") == 1:
+            s = {k: v for k, v in s.items() if k != "multipleOf"}
+        elif "multipleOf" in s:
+            raise UnsupportedNegatedNumeric(schema=s)
+
+        lo, hi = JSONTypeInteger._integer_bounds(s)
+        if lo is not None and hi is not None and lo > hi:
+            return JSONtop()  # uninhabited, so the complement is everything
+
+        parts = [
+            *get_default_types_except("number", "integer"),
+            JSONTypeNumber({"not": {"multipleOf": 1}}),
+        ]
+        if lo is not None:
+            parts.append(JSONTypeInteger({"maximum": lo - 1}))
+        if hi is not None:
+            parts.append(JSONTypeInteger({"minimum": hi + 1}))
+        result = bool_to_constructor["anyOf"]({"anyOf": parts})
+        if isinstance(result, JSONanyOf):
+            # remember the negated schema: lhs <: not(X) iff meet(lhs, X)
+            # is uninhabited, which numeric meets can decide exactly
+            result.complementOf = JSONTypeInteger(s)
+        return result
 
 
 class JSONTypeNumber(JSONTypeNumeric):
@@ -726,26 +889,21 @@ class JSONTypeNumber(JSONTypeNumeric):
 
         def _join_number(s1, s2):
             if s2.type in definitions.Jnumeric:
-                ret = {}
-                if s1.interval.overlaps(s2.interval):
-                    joined_interval = s1.interval | s2.interval
-                    if utils.is_num(joined_interval.lower):
-                        ret["minimum"] = joined_interval.lower
-                        if joined_interval.left == portion.OPEN:
-                            ret["exclusiveMinimum"] = True
-                    if utils.is_num(joined_interval.upper):
-                        ret["maximum"] = joined_interval.upper
-                        if joined_interval.right == portion.OPEN:
-                            ret["exclusiveMaximum"] = True
-                    gcd = utils.gcd(s1.multipleOf, s2.multipleOf)
-                    if utils.is_num(gcd) and gcd != 1:
-                        ret["multipleOf"] = gcd
-                else:
+                if s1.notInteger != s2.notInteger:
+                    # a not-integer schema cannot merge intervals with one
+                    # that admits integers, so keep the union as is
                     return JSONanyOf({"anyOf": [s1, s2]})
+                if not s1.interval.overlaps(s2.interval):
+                    return JSONanyOf({"anyOf": [s1, s2]})
+                ret = JSONTypeNumeric._interval_to_bounds(s1.interval | s2.interval)
+                if s1.notInteger:
+                    ret["not"] = {"multipleOf": 1}
+                gcd = utils.gcd(s1.multipleOf, s2.multipleOf)
+                if utils.is_num(gcd) and gcd != 1:
+                    ret["multipleOf"] = gcd
 
                 if s2.type == "integer":
-                    ret = JSONTypeInteger(ret)
-                    return JSONanyOf({"anyOf": [s1, ret]})
+                    return JSONanyOf({"anyOf": [s1, JSONTypeInteger(ret)]})
                 return JSONTypeNumber(ret)
             return JSONanyOf({"anyOf": [s1, s2]})
 
@@ -754,47 +912,103 @@ class JSONTypeNumber(JSONTypeNumeric):
     def _is_subtype(self, s):
         """Return whether this number schema is a subtype of ``s``."""
 
-        def _is_number_subtype(s1, s2):  # noqa: PLR0911
+        def _is_number_subtype(s1, s2):
             match s2.type:
                 case "number":
-                    if s1.has_enum():
-                        return super().subtype_enum(s2)
-                    is_sub_interval = s1.interval in s2.interval
-                    if not is_sub_interval:
-                        print_db("num__00")
-                        return False
-                    if JSONTypeNumeric._multipleof_compatible(
-                        s1.multipleOf, s2.multipleOf
-                    ):
-                        print_db("num__01")
-                        return True
+                    return JSONTypeNumber._is_subtype_of_number(s1, s2)
                 case "integer":
-                    is_sub_interval = s1.interval in s2.interval
-                    if not is_sub_interval:
-                        print_db("num__02")
-                        return False
-                    if utils.is_int_equiv(s1.multipleOf) and (
-                        JSONTypeNumeric._multipleof_compatible_integer_rhs(
-                            s1.multipleOf, s2.multipleOf
-                        )
-                    ):
-                        print_db("num__03")
-                        return True
+                    return JSONTypeNumber._is_subtype_of_integer(s1, s2)
                 case _:
                     print_db("num__04")
                     return False
-            return None
 
         return super().is_subtype_handle_rhs(s, _is_number_subtype)
+
+    @staticmethod
+    def _is_subtype_of_number(s1, s2):
+        """Return whether number schema ``s1`` is a subtype of number ``s2``."""
+        verdict = JSONTypeNumeric._subtype_by_values(s1, s2)
+        if verdict is not None:
+            return verdict
+        if s2.notInteger:
+            return JSONTypeNumber._is_subtype_of_non_integer(s1, s2)
+        if s1.notInteger:
+            if utils.is_num(s2.multipleOf):
+                # a dense set of non-integers cannot fit into a
+                # discrete set of multiples
+                print_db("num__06")
+                verdict = False
+            else:
+                verdict = utils.interval_diff_is_integer_points(
+                    s1.interval, s2.interval
+                )
+            return verdict
+        if s1.interval not in s2.interval:
+            print_db("num__00")
+            return False
+        if JSONTypeNumeric._multipleof_compatible(s1.multipleOf, s2.multipleOf):
+            print_db("num__01")
+            return True
+        return None
+
+    @staticmethod
+    def _is_subtype_of_integer(s1, s2):
+        """Return whether number schema ``s1`` is a subtype of integer ``s2``."""
+        verdict = JSONTypeNumeric._subtype_by_values(s1, s2)
+        if verdict is not None:
+            return verdict
+        if s1.notInteger:
+            print_db("num__07")
+            return False
+        if s1.interval not in s2.interval:
+            print_db("num__02")
+            return False
+        if utils.is_int_equiv(s1.multipleOf) and (
+            JSONTypeNumeric._multipleof_compatible_integer_rhs(
+                s1.multipleOf, s2.multipleOf
+            )
+        ):
+            print_db("num__03")
+            return True
+        return None
+
+    @staticmethod
+    def _is_subtype_of_non_integer(s1, s2):
+        """Return whether ``s1`` fits the not-integer number schema ``s2``.
+
+        Every value of ``s1`` must lie in the interval of ``s2`` and must not
+        be an integer. Single-value schemas are already handled by the caller.
+        """
+        if s1.multipleOf is None:
+            if s1.notInteger:
+                # values missing from the rhs interval must all be integers
+                return utils.interval_diff_is_integer_points(s1.interval, s2.interval)
+            if utils.interval_contains_integer(s1.interval):
+                return False
+            return s1.interval in s2.interval
+        step = utils.integer_valued_multiple_step(s1.multipleOf)
+        if utils.interval_contains_multiple_of(s1.interval, step):
+            # some multiple of s1.multipleOf in the interval is an integer
+            return False
+        return not utils.interval_contains_multiple_of(
+            s1.interval - s2.interval, s1.multipleOf
+        )
 
     @staticmethod
     def neg(s):
         """Return the complement of the number schema ``s`` (non-numbers plus gaps).
 
-        Raise ``UnsupportedNegatedNumeric`` for ``multipleOf`` schemas: their
-        complement contains the non-multiples, which the checker language
-        cannot express, and a smaller complement would yield unsound verdicts.
+        A number schema with ``multipleOf`` 1 admits exactly the integers in
+        its bounds, so its complement is that of the corresponding integer
+        schema. Raise ``UnsupportedNegatedNumeric`` for other ``multipleOf``
+        factors: their complement contains the non-multiples, which the
+        checker language cannot express, and a smaller complement would
+        yield unsound verdicts.
         """
+        if s.get("multipleOf") == 1:
+            return JSONTypeInteger.neg(
+                {k: v for k, v in s.items() if k != "multipleOf"}
+            )
         if "multipleOf" in s:
             raise UnsupportedNegatedNumeric(schema=s)
 
@@ -818,10 +1032,16 @@ class JSONTypeNumber(JSONTypeNumeric):
                     JSONTypeNumber({"minimum": s["maximum"], "exclusiveMinimum": True})
                 )
 
-        if len(negated_numbers) == 0:
-            return non_numbers
-        joined_numbers = bool_to_constructor["anyOf"]({"anyOf": negated_numbers})
-        return non_numbers.join(joined_numbers)
+        if negated_numbers:
+            joined_numbers = bool_to_constructor["anyOf"]({"anyOf": negated_numbers})
+            result = non_numbers.join(joined_numbers)
+        else:
+            result = non_numbers
+        if isinstance(result, JSONanyOf):
+            # remember the negated schema: lhs <: not(X) iff meet(lhs, X)
+            # is uninhabited, which numeric meets can decide exactly
+            result.complementOf = JSONTypeNumber(s)
+        return result
 
 
 class JSONTypeBoolean(JSONschema):
@@ -1498,6 +1718,9 @@ class JSONanyOf(JSONschema):
         self.type = "anyOf"
         self.anyOf: list = self["anyOf"]
         self.nonTrivialJoin = False
+        # set on unions produced by negating a numeric schema: the schema
+        # this union is the exact complement of
+        self.complementOf: JSONschema | None = None
 
     def update_internal_state(self):
         """Flatten nested ``anyOf`` members into this union."""
@@ -1535,6 +1758,8 @@ class JSONanyOf(JSONschema):
         """Join ``s`` into the union, merging with a same-typed member if any."""
         if s.type == "anyOf":
             return json_any_of_factory({"anyOf": self.anyOf + s.anyOf})
+        # the union grows, so it no longer is the recorded exact complement
+        self.complementOf = None
         for i in self.anyOf:
             if i.type == s.type:
                 t = i.join(s)

@@ -104,14 +104,20 @@ This fork is based on version 0.0.8 of [IBM/jsonsubschema](https://github.com/ib
 * The `dependencies` keyword (which upstream silently ignores) now raises
   `exceptions.UnsupportedDependencies` instead of potentially returning
   unsound verdicts.
-* Negating an integer schema that admits more than one value (e.g.
-  `{"not": {"type": "integer", "minimum": 10, "maximum": 20}}`) or a numeric
-  schema with `multipleOf` now raises
-  `exceptions.UnsupportedNegatedNumeric` instead of computing a too-small
-  complement that could yield unsound verdicts (upstream silently returns
-  potentially wrong results here). Negating a single admitted value, such as
-  a negated numeric `enum`, is still supported and now yields the exact
-  complement.
+* Negating an integer schema (e.g.
+  `{"not": {"type": "integer", "minimum": 10, "maximum": 20}}`) now yields
+  the exact complement — including the non-integer numbers, represented
+  internally as `{"type": "number", "not": {"multipleOf": 1}}` — where
+  upstream silently computes a too-small complement that can yield unsound
+  verdicts. Only negating a numeric schema with a non-trivial `multipleOf`
+  (whose complement would contain the non-multiples) raises
+  `exceptions.UnsupportedNegatedNumeric` instead of returning potentially
+  wrong results.
+* Uninhabited numeric schemas whose `multipleOf` has no multiple within the
+  schema's bounds are now recognized as such, and subtype checks of numeric
+  schemas admitting a single value are now exact (e.g.
+  `{"type": "integer"}` is now a subschema of
+  `{"type": "number", "multipleOf": 0.5}`).
 
 ## License
 

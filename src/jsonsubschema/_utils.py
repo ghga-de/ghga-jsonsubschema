@@ -6,12 +6,12 @@ SPDX-License-Identifier: Apache-2.0
 """
 
 import fractions
+import functools
 import json
 import math
 import numbers
 import re
 import sys
-from contextlib import suppress
 
 import jsonschema
 import portion
@@ -62,14 +62,31 @@ def validate_schema(s):
     return config.VALIDATOR.check_schema(s)
 
 
+@functools.lru_cache
+def _instance_validator(validator):
+    """Return ``validator`` with ``integer`` matching int-equivalent floats.
+
+    The subtype checker treats numbers mathematically, so a float without a
+    fractional part (e.g. ``10.0``) counts as an integer even though the
+    draft 4 validator would reject it for ``{"type": "integer"}``.
+    """
+    return jsonschema.validators.extend(
+        validator,
+        type_checker=validator.TYPE_CHECKER.redefine(
+            "integer", lambda _checker, instance: is_int_equiv(instance)
+        ),
+    )
+
+
 def get_valid_enum_vals(enum, s):
-    """Return the enum values that validate against the schema ``s``."""
-    valid_vals = []
-    for i in enum:
-        with suppress(jsonschema.ValidationError):
-            jsonschema.validate(instance=i, schema=s)
-            valid_vals.append(i)
-    return valid_vals
+    """Return the enum values that validate against the schema ``s``.
+
+    The values are validated with the configured validator draft so that
+    keywords keep their intended semantics (``jsonschema.validate`` would
+    guess the draft from the schema and default to the latest one).
+    """
+    validator = _instance_validator(config.VALIDATOR)(dict(s))
+    return [i for i in enum if validator.is_valid(i)]
 
 
 def get_typed_enum_vals(enum, t):
@@ -313,6 +330,58 @@ def are_intervals_mergable(i1, i2):
         or (is_num(i1.lower) and is_num(i2.upper) and i1.lower - i2.upper == 1)
         or (is_num(i2.lower) and is_num(i1.upper) and i2.lower - i1.upper == 1)
     )
+
+
+def interval_contains_integer(i):
+    """Return whether the interval ``i`` contains at least one integer value."""
+    for atom in i:
+        if not is_num(atom.lower) or not is_num(atom.upper):
+            # a non-empty unbounded interval always contains integers
+            return True
+        n = math.ceil(atom.lower)
+        if n == atom.lower and atom.left == portion.OPEN:
+            n += 1
+        if n < atom.upper or (n == atom.upper and atom.right == portion.CLOSED):
+            return True
+    return False
+
+
+def interval_contains_multiple_of(i, mulof):
+    """Return whether the interval ``i`` contains a multiple of ``mulof``.
+
+    The bounds are converted to fractions so that divisibility is decided
+    exactly instead of with floating point arithmetic.
+    """
+    step = fractions.Fraction(str(mulof))
+    for atom in i:
+        if not is_num(atom.lower) or not is_num(atom.upper):
+            # a non-empty unbounded interval contains multiples of any factor
+            return True
+        multiple = math.ceil(fractions.Fraction(str(atom.lower)) / step) * step
+        if multiple == atom.lower and atom.left == portion.OPEN:
+            multiple += step
+        upper = fractions.Fraction(str(atom.upper))
+        if multiple < upper or (multiple == upper and atom.right == portion.CLOSED):
+            return True
+    return False
+
+
+def integer_valued_multiple_step(mulof):
+    """Return the spacing between the integer-valued multiples of ``mulof``.
+
+    For ``mulof = p/q`` in lowest terms, a multiple ``k * mulof`` is an
+    integer exactly when ``q`` divides ``k``, so the integer-valued multiples
+    of ``mulof`` are precisely the multiples of the numerator ``p``.
+    """
+    return fractions.Fraction(str(mulof)).numerator
+
+
+def interval_diff_is_integer_points(i1, i2):
+    """Return whether ``i1`` minus ``i2`` contains only single integer points."""
+    for atom in i1 - i2:
+        if atom.lower != atom.upper or not is_int_equiv(atom.lower):
+            return False
+    return True
 
 
 def load_json_file(path, msg=None):
