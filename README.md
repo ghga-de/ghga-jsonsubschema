@@ -88,7 +88,7 @@ uv run pytest --cov tests/
 
 ## Changes made by GHGA
 
-This fork is based on the latest unreleased main branch of [IBM/jsonsubschema](https://github.com/ibm/jsonsubschema) and introduces additional changes:
+This fork is based on version 0.0.8 of [IBM/jsonsubschema](https://github.com/ibm/jsonsubschema) and introduces additional changes:
 
 * Public API names have been changed to align with PEP 8.
 * The minimum required Python version is now 3.13.
