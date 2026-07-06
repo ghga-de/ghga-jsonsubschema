@@ -716,17 +716,19 @@ class JSONTypeInteger(JSONTypeNumeric):
         )
 
         if "minimum" in s:
-            # if "exclusiveMinimum":
-            negated_ints.append(JSONTypeInteger({"maximum": s["minimum"] - 1}))
-            # else:
-            #     negated_numbers.append(JSONTypeNumber(
-            #         {"maximum": s["minimum"], "exclusiveMaximum": True}))
+            if s.get("exclusiveMinimum"):
+                negated_ints.append(JSONTypeInteger({"maximum": s["minimum"]}))
+            else:
+                negated_ints.append(
+                    JSONTypeInteger({"maximum": s["minimum"], "exclusiveMaximum": True})
+                )
         if "maximum" in s:
-            # if "exclusiveMaximum":
-            negated_ints.append(JSONTypeInteger({"minimum": s["maximum"] + 1}))
-            # else:
-            #     negated_numbers.append(JSONTypeNumber(
-            #         {"minimum": s["maximum"], "exclusiveMinimum": True}))
+            if s.get("exclusiveMaximum"):
+                negated_ints.append(JSONTypeInteger({"minimum": s["maximum"]}))
+            else:
+                negated_ints.append(
+                    JSONTypeInteger({"minimum": s["maximum"], "exclusiveMinimum": True})
+                )
         # TODO: No handling of multipleOf at the moment.
 
         if len(negated_ints) == 0:
@@ -828,14 +830,14 @@ class JSONTypeNumber(JSONTypeNumeric):
         )
 
         if "minimum" in s:
-            if "exclusiveMinimum":
+            if s.get("exclusiveMinimum"):
                 negated_numbers.append(JSONTypeNumber({"maximum": s["minimum"]}))
             else:
                 negated_numbers.append(
                     JSONTypeNumber({"maximum": s["minimum"], "exclusiveMaximum": True})
                 )
         if "maximum" in s:
-            if "exclusiveMaximum":
+            if s.get("exclusiveMaximum"):
                 negated_numbers.append(JSONTypeNumber({"minimum": s["maximum"]}))
             else:
                 negated_numbers.append(

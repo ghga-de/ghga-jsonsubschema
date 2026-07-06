@@ -626,6 +626,78 @@ def test_not1():
     #     self.assertTrue(is_subschema(s2, s1))
 
 
+def test_not_number_minimum():
+    # the complement of x >= 5 over numbers is x < 5
+    s1 = {"type": "number", "maximum": 5, "exclusiveMaximum": True}
+    s2 = {"type": "number", "maximum": 5}
+    neg = {"not": {"type": "number", "minimum": 5}}
+    assert is_subschema(s1, neg)
+    assert not is_subschema(s2, neg)
+
+
+def test_not_number_exclusive_minimum():
+    # the complement of x > 5 over numbers is x <= 5
+    s1 = {"type": "number", "maximum": 5}
+    s2 = {"type": "number", "maximum": 6}
+    neg = {"not": {"type": "number", "minimum": 5, "exclusiveMinimum": True}}
+    assert is_subschema(s1, neg)
+    assert not is_subschema(s2, neg)
+
+
+def test_not_number_maximum():
+    # the complement of x <= 5 over numbers is x > 5
+    s1 = {"type": "number", "minimum": 5, "exclusiveMinimum": True}
+    s2 = {"type": "number", "minimum": 5}
+    neg = {"not": {"type": "number", "maximum": 5}}
+    assert is_subschema(s1, neg)
+    assert not is_subschema(s2, neg)
+
+
+def test_not_number_exclusive_maximum():
+    # the complement of x < 5 over numbers is x >= 5
+    s1 = {"type": "number", "minimum": 5}
+    s2 = {"type": "number", "minimum": 4}
+    neg = {"not": {"type": "number", "maximum": 5, "exclusiveMaximum": True}}
+    assert is_subschema(s1, neg)
+    assert not is_subschema(s2, neg)
+
+
+def test_not_integer_minimum():
+    # the complement of x >= 5 over integers is x <= 4
+    s1 = {"type": "integer", "maximum": 4}
+    s2 = {"type": "integer", "maximum": 5}
+    neg = {"not": {"type": "integer", "minimum": 5}}
+    assert is_subschema(s1, neg)
+    assert not is_subschema(s2, neg)
+
+
+def test_not_integer_exclusive_minimum():
+    # the complement of x > 5 over integers is x <= 5
+    s1 = {"type": "integer", "maximum": 5}
+    s2 = {"type": "integer", "maximum": 6}
+    neg = {"not": {"type": "integer", "minimum": 5, "exclusiveMinimum": True}}
+    assert is_subschema(s1, neg)
+    assert not is_subschema(s2, neg)
+
+
+def test_not_integer_maximum():
+    # the complement of x <= 5 over integers is x >= 6
+    s1 = {"type": "integer", "minimum": 6}
+    s2 = {"type": "integer", "minimum": 5}
+    neg = {"not": {"type": "integer", "maximum": 5}}
+    assert is_subschema(s1, neg)
+    assert not is_subschema(s2, neg)
+
+
+def test_not_integer_exclusive_maximum():
+    # the complement of x < 5 over integers is x >= 5
+    s1 = {"type": "integer", "minimum": 5}
+    s2 = {"type": "integer", "minimum": 4}
+    neg = {"not": {"type": "integer", "maximum": 5, "exclusiveMaximum": True}}
+    assert is_subschema(s1, neg)
+    assert not is_subschema(s2, neg)
+
+
 # Tests for composite numeric subtype
 
 
