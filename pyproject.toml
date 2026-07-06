@@ -88,11 +88,6 @@ ignore = [
     "E116", # unexpected indentation of comment (for formatter)
     "E117", # over-indented (for formatter)
     "W191", # tab indentation (for formatter)
-    # The schema objects in _checkers.py override __eq__ and __bool__ (e.g.
-    # JSONbot() == False is True but JSONbot() is False is False), so the
-    # explicit `== True`/`== False` comparisons are intentional and are NOT
-    # equivalent to `is`/truthiness. Keep E712 disabled to preserve semantics.
-    "E712", # true-false-comparison
     "PLW", # pylint warnings
     "RUF001", # ambiguous unicode character strings
     "RUF010", # explicit conversion to string or repr: !s or !r

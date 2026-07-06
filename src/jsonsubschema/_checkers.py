@@ -941,7 +941,7 @@ class JSONTypeArray(JSONschema):
             (self.minItems > self.maxItems)
             or (
                 utils.is_list(self.items_)
-                and self.additionalItems == False
+                and is_bot(self.additionalItems)
                 and self.minItems > len(self.items_)
             )
             or (utils.is_list(self.items_) and len(self.items_) == 0)
@@ -984,9 +984,9 @@ class JSONTypeArray(JSONschema):
 
                 ret.items_ = itms
 
-                if s2.additionalItems == True:
+                if is_top(s2.additionalItems):
                     ret.additionalItems = copy.deepcopy(s1.items_)
-                elif s2.additionalItems == False:
+                elif is_bot(s2.additionalItems):
                     ret.additionalItems = False
                 elif utils.is_dict(s2.additionalItems):
                     add_items = s2.additionalItems.meet(s1.items_)
@@ -1113,10 +1113,10 @@ class JSONTypeArray(JSONschema):
                 print_db("__06__")
                 return False
             if utils.is_list(s2.items_):
-                if s2.additionalItems == False:
+                if is_bot(s2.additionalItems):
                     print_db("__07__")
                     return False
-                if s2.additionalItems == True:
+                if is_top(s2.additionalItems):
                     for i in s2.items_:
                         if not s1.items_.is_subtype(i):
                             print_db("__08__")
@@ -1138,14 +1138,14 @@ class JSONTypeArray(JSONschema):
         elif utils.is_list(s1.items_):
             print_db("lhs is list")
             if utils.is_dict(s2.items_):
-                if s1.additionalItems == False:
+                if is_bot(s1.additionalItems):
                     for i in s1.items_:
                         if not i.is_subtype(s2.items_):
                             print_db("__13__")
                             return False
                     print_db("__14__")
                     return True
-                if s1.additionalItems == True:
+                if is_top(s1.additionalItems):
                     for i in s1.items_:
                         if not i.is_subtype(s2.items_):
                             return False
@@ -1170,17 +1170,17 @@ class JSONTypeArray(JSONschema):
                     print_db("len1 == len2")
                     if s1.additionalItems == s2.additionalItems:
                         return True
-                    if s1.additionalItems == True and s2.additionalItems == False:
+                    if is_top(s1.additionalItems) and is_bot(s2.additionalItems):
                         return False
-                    if s1.additionalItems == False and s2.additionalItems == True:
+                    if is_bot(s1.additionalItems) and is_top(s2.additionalItems):
                         return True
                     return s1.additionalItems.is_subtype(s2.additionalItems)
                 if len1 > len2:
                     diff = len1 - len2
                     for i in range(len1 - diff, len1):
-                        if s2.additionalItems == False:
+                        if is_bot(s2.additionalItems):
                             return False
-                        if s2.additionalItems == True:
+                        if is_top(s2.additionalItems):
                             return True
                         if not s1.items_[i].is_subtype(s2.additionalItems):
                             print_db("9999")
@@ -1190,9 +1190,9 @@ class JSONTypeArray(JSONschema):
                 # len2 > len 1
                 diff = len2 - len1
                 for i in range(len2 - diff, len2):
-                    if s1.additionalItems == False:
+                    if is_bot(s1.additionalItems):
                         return True
-                    if s1.additionalItems == True or not s1.additionalItems.is_subtype(
+                    if is_top(s1.additionalItems) or not s1.additionalItems.is_subtype(
                         s2.items_[i]
                     ):
                         return False
@@ -1453,11 +1453,11 @@ class JSONTypeObject(JSONschema):
         # third,
 
         # fourth,
-        if s2.additionalProperties == True:
+        if is_top(s2.additionalProperties):
             return True
-        if s2.additionalProperties == False:
+        if is_bot(s2.additionalProperties):
             return not (
-                s1.additionalProperties == True
+                is_top(s1.additionalProperties)
                 or unmatched_lhs_props_keys
                 or unmatched_lhs_p_props_keys
             )
@@ -1467,9 +1467,9 @@ class JSONTypeObject(JSONschema):
         for k in unmatched_lhs_p_props_keys:
             if not s1.patternProperties[k].is_subtype(s2.additionalProperties):
                 return False
-        if s1.additionalProperties == True:
+        if is_top(s1.additionalProperties):
             return False
-        if s1.additionalProperties == False:
+        if is_bot(s1.additionalProperties):
             return True
         return s1.additionalProperties.is_subtype(s2.additionalProperties)
 

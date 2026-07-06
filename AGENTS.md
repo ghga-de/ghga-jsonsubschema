@@ -86,10 +86,12 @@ work on feature branches.
   helpers over adding `noqa` suppressions.
 - **Docstrings**: pydocstyle PEP 257 convention is enforced for all public
   and private functions/classes in `src/` (tests are exempt from D101–D103).
-- **`== True` / `== False` comparisons in `_checkers.py` are intentional.**
-  The schema classes override `__eq__` and `__bool__` (e.g. `JSONbot() ==
-  False` is `True` while `bool(JSONbot())` differs), so do *not* "simplify"
-  them to `is` or truthiness checks. E712 is disabled for this reason.
+- **Use `is_top()` / `is_bot()` to test schema-valued slots in
+  `_checkers.py`.** Keywords like `additionalProperties`/`additionalItems`
+  may hold a Python bool *or* a checker object (`JSONtop()`/`JSONbot()`/any
+  `JSONschema`), so never compare them with `is True`/`is False` or
+  truthiness (`JSONtop() is not True`, and `__bool__` is overridden) —
+  call the `is_top`/`is_bot` helpers instead.
 - **`JSONschema` subclasses `dict`.** Checker objects are dictionaries with
   behavior; mutating keys changes the schema. `UninhabitedMeta` runs
   validation and uninhabited-checks on every construction — invalid
