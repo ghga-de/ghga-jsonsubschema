@@ -10,6 +10,7 @@ from jsonschema.exceptions import SchemaError
 
 from jsonsubschema import is_subschema
 from jsonsubschema._utils import float_gcd
+from jsonsubschema.exceptions import UnsupportedNegatedNumeric
 
 # Tests for integer subtype
 
@@ -616,12 +617,15 @@ def test_decimal1():
 
 
 def test_not1():
+    # the complement of an integer schema contains non-integer numbers,
+    # which cannot be represented, so negating integers is unsupported
     s1 = {"not": {"type": "integer", "minimum": 10, "maximum": 20}}
     s2 = {"not": {"minimum": 10, "maximum": 20}}
 
-    # s1 also accepts non-numbers (and non-integer numbers), s2 does not
-    assert not is_subschema(s1, s2)
-    assert is_subschema(s2, s1)
+    with pytest.raises(UnsupportedNegatedNumeric):
+        is_subschema(s1, s2)
+    with pytest.raises(UnsupportedNegatedNumeric):
+        is_subschema(s2, s1)
 
 
 def test_not_number_minimum():
@@ -660,40 +664,89 @@ def test_not_number_exclusive_maximum():
     assert not is_subschema(s2, neg)
 
 
-def test_not_integer_minimum():
-    # the complement of x >= 5 over integers is x <= 4
-    s1 = {"type": "integer", "maximum": 4}
-    s2 = {"type": "integer", "maximum": 5}
-    neg = {"not": {"type": "integer", "minimum": 5}}
+def test_not_single_integer_value():
+    # the complement of a single value contains every other number
+    s1 = {"enum": [0.5]}
+    s2 = {"enum": [0]}
+    neg = {"not": {"enum": [0]}}
     assert is_subschema(s1, neg)
     assert not is_subschema(s2, neg)
 
 
-def test_not_integer_exclusive_minimum():
-    # the complement of x > 5 over integers is x <= 5
-    s1 = {"type": "integer", "maximum": 5}
-    s2 = {"type": "integer", "maximum": 6}
-    neg = {"not": {"type": "integer", "minimum": 5, "exclusiveMinimum": True}}
-    assert is_subschema(s1, neg)
-    assert not is_subschema(s2, neg)
+def test_meet_integer_number_exclusive_minimum():
+    # the only integer in [1, 3] greater than 2 is 3
+    s1 = {
+        "allOf": [
+            {"type": "integer", "minimum": 1, "maximum": 3},
+            {"type": "number", "minimum": 2, "exclusiveMinimum": True},
+        ]
+    }
+    s2 = {"enum": [3]}
+    assert is_subschema(s1, s2)
+    assert is_subschema(s2, s1)
 
 
-def test_not_integer_maximum():
-    # the complement of x <= 5 over integers is x >= 6
-    s1 = {"type": "integer", "minimum": 6}
-    s2 = {"type": "integer", "minimum": 5}
-    neg = {"not": {"type": "integer", "maximum": 5}}
-    assert is_subschema(s1, neg)
-    assert not is_subschema(s2, neg)
+def test_meet_integer_number_exclusive_maximum():
+    # the only integer in [1, 3] less than 2 is 1
+    s1 = {
+        "allOf": [
+            {"type": "integer", "minimum": 1, "maximum": 3},
+            {"type": "number", "maximum": 2, "exclusiveMaximum": True},
+        ]
+    }
+    s2 = {"enum": [1]}
+    assert is_subschema(s1, s2)
+    assert is_subschema(s2, s1)
 
 
-def test_not_integer_exclusive_maximum():
-    # the complement of x < 5 over integers is x >= 5
-    s1 = {"type": "integer", "minimum": 5}
-    s2 = {"type": "integer", "minimum": 4}
-    neg = {"not": {"type": "integer", "maximum": 5, "exclusiveMaximum": True}}
-    assert is_subschema(s1, neg)
-    assert not is_subschema(s2, neg)
+def test_meet_number_number_exclusive_bounds():
+    # the meet of x >= 5 and x > 5 is x > 5, not x >= 5
+    s1 = {
+        "allOf": [
+            {"type": "number", "minimum": 5},
+            {"minimum": 5, "exclusiveMinimum": True},
+        ]
+    }
+    s2 = {"type": "number", "minimum": 5, "exclusiveMinimum": True}
+    s3 = {"type": "number", "minimum": 5}
+    assert is_subschema(s1, s2)
+    assert is_subschema(s2, s1)
+    assert not is_subschema(s3, s1)
+
+
+def test_not_integer_is_unsupported():
+    # the complement of any integer schema contains non-integer numbers
+    # (e.g. 10.5), which cannot be represented, so it must raise
+    s1 = {"enum": [10.5]}
+    neg = {"not": {"type": "integer", "minimum": 10, "maximum": 20}}
+    with pytest.raises(UnsupportedNegatedNumeric):
+        is_subschema(s1, neg)
+
+
+def test_not_unbounded_integer_is_unsupported():
+    # a smaller-than-exact complement of the lhs would yield an unsound True
+    # here (10.5 validates against s1 but is not of any type in s2)
+    s1 = {"not": {"type": "integer"}}
+    s2 = {"type": ["string", "null", "boolean", "object", "array"]}
+    with pytest.raises(UnsupportedNegatedNumeric):
+        is_subschema(s1, s2)
+
+
+def test_not_integer_multiple_of_is_unsupported():
+    # the complement of multiples of 3 contains e.g. 4
+    s1 = {"enum": [4]}
+    neg = {"not": {"type": "integer", "multipleOf": 3}}
+    with pytest.raises(UnsupportedNegatedNumeric):
+        is_subschema(s1, neg)
+
+
+def test_not_number_multiple_of_is_unsupported():
+    # the complement of a multipleOf constraint contains the non-multiples,
+    # which cannot be represented, so it must raise
+    s1 = {"enum": [4]}
+    neg = {"not": {"type": "number", "multipleOf": 2.5}}
+    with pytest.raises(UnsupportedNegatedNumeric):
+        is_subschema(s1, neg)
 
 
 # Tests for composite numeric subtype

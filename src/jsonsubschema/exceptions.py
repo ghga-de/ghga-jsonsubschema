@@ -8,6 +8,7 @@ SPDX-License-Identifier: Apache-2.0
 __all__ = [
     "UnsupportedEnumCanonicalization",
     "UnsupportedNegatedArray",
+    "UnsupportedNegatedNumeric",
     "UnsupportedNegatedObject",
     "UnsupportedRecursiveRef",
 ]
@@ -58,6 +59,22 @@ class UnsupportedNegatedObject(_SubtypeCheckError):
     def __str__(self):
         """Return human-readable error message."""
         return f"Object negation at {self.schema} is not supported."
+
+
+class UnsupportedNegatedNumeric(_SubtypeCheckError):
+    """Raised when negating a numeric schema is not supported.
+
+    The complement of an integer schema contains the non-integer numbers,
+    and the complement of a ``multipleOf`` constraint contains the
+    non-multiples; neither is expressible in the internal checker language.
+    """
+
+    def __init__(self, schema):
+        self.schema = schema
+
+    def __str__(self):
+        """Return human-readable error message."""
+        return f"Negation of the numeric schema {self.schema} is not supported."
 
 
 class UnsupportedNegatedArray(_SubtypeCheckError):

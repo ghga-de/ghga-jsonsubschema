@@ -96,9 +96,18 @@ This fork is based on version 0.0.8 of [IBM/jsonsubschema](https://github.com/ib
 * Tests have been converted from `unittest` to `pytest`.
 * An empty `enum` is now treated as an uninhabited schema.
 * Bugs inherited from upstream have been fixed: negating a numeric schema now
-  respects `exclusiveMinimum`/`exclusiveMaximum`, and nested `anyOf` unions
-  are now fully flattened (previously, adjacent nested unions could make two
-  equivalent schemas compare as unrelated).
+  respects `exclusiveMinimum`/`exclusiveMaximum`, intersecting numeric schemas
+  no longer drops exclusive bounds, and nested `anyOf` unions are now fully
+  flattened (previously, adjacent nested unions could make two equivalent
+  schemas compare as unrelated).
+* Negating an integer schema that admits more than one value (e.g.
+  `{"not": {"type": "integer", "minimum": 10, "maximum": 20}}`) or a numeric
+  schema with `multipleOf` now raises
+  `exceptions.UnsupportedNegatedNumeric` instead of computing a too-small
+  complement that could yield unsound verdicts (upstream silently returns
+  potentially wrong results here). Negating a single admitted value, such as
+  a negated numeric `enum`, is still supported and now yields the exact
+  complement.
 
 ## License
 

@@ -15,7 +15,11 @@ import jsonsubschema._constants as definitions
 import jsonsubschema._utils as utils
 from jsonsubschema import config
 from jsonsubschema._utils import print_db
-from jsonsubschema.exceptions import UnsupportedNegatedArray, UnsupportedNegatedObject
+from jsonsubschema.exceptions import (
+    UnsupportedNegatedArray,
+    UnsupportedNegatedNumeric,
+    UnsupportedNegatedObject,
+)
 
 
 class UninhabitedMeta(type):
@@ -539,13 +543,21 @@ class JSONTypeNumeric(JSONschema):
             if s1.type in definitions.Jnumeric and s2.type in definitions.Jnumeric:
                 ret = {}
 
-                mn = max(s1.minimum, s2.minimum)
-                if utils.is_num(mn):
-                    ret["minimum"] = mn
+                # intersect the cached intervals so that exclusive
+                # minimum/maximum bounds are honored
+                interval = s1.interval & s2.interval
+                if interval.empty:
+                    return JSONbot()
 
-                mx = min(s1.maximum, s2.maximum)
-                if utils.is_num(mx):
-                    ret["maximum"] = mx
+                if utils.is_num(interval.lower):
+                    ret["minimum"] = interval.lower
+                    if interval.left == portion.OPEN:
+                        ret["exclusiveMinimum"] = True
+
+                if utils.is_num(interval.upper):
+                    ret["maximum"] = interval.upper
+                    if interval.right == portion.OPEN:
+                        ret["exclusiveMaximum"] = True
 
                 mul_of = utils.lcm(s1.multipleOf, s2.multipleOf)
                 if mul_of:
@@ -709,32 +721,37 @@ class JSONTypeInteger(JSONTypeNumeric):
 
     @staticmethod
     def neg(s):
-        """Return the complement of the integer schema ``s``."""
-        negated_ints = []
-        non_ints = bool_to_constructor["anyOf"](
-            {"anyOf": get_default_types_except("number", "integer")}
-        )
+        """Return the complement of the integer schema ``s`` if representable.
 
-        if "minimum" in s:
+        Only integer schemas admitting at most one value can be negated
+        exactly: their complement is everything except that number. Any wider
+        integer schema's complement also contains the non-integer numbers
+        between the admitted integers (e.g. ``10.5``), which the checker
+        language cannot express, so those raise ``UnsupportedNegatedNumeric``
+        instead of yielding unsound subtype verdicts.
+        """
+        if "multipleOf" not in s and "minimum" in s and "maximum" in s:
             if s.get("exclusiveMinimum"):
-                negated_ints.append(JSONTypeInteger({"maximum": s["minimum"]}))
+                lo = math.floor(s["minimum"]) + 1
             else:
-                negated_ints.append(
-                    JSONTypeInteger({"maximum": s["minimum"], "exclusiveMaximum": True})
-                )
-        if "maximum" in s:
+                lo = math.ceil(s["minimum"])
             if s.get("exclusiveMaximum"):
-                negated_ints.append(JSONTypeInteger({"minimum": s["maximum"]}))
+                hi = math.ceil(s["maximum"]) - 1
             else:
-                negated_ints.append(
-                    JSONTypeInteger({"minimum": s["maximum"], "exclusiveMinimum": True})
+                hi = math.floor(s["maximum"])
+            if lo > hi:  # uninhabited, so the complement is everything
+                return JSONtop()
+            if lo == hi:
+                return bool_to_constructor["anyOf"](
+                    {
+                        "anyOf": [
+                            *get_default_types_except("number", "integer"),
+                            JSONTypeNumber({"maximum": lo, "exclusiveMaximum": True}),
+                            JSONTypeNumber({"minimum": lo, "exclusiveMinimum": True}),
+                        ]
+                    }
                 )
-        # TODO: No handling of multipleOf at the moment.
-
-        if len(negated_ints) == 0:
-            return non_ints
-        joined_ints = bool_to_constructor["anyOf"]({"anyOf": negated_ints})
-        return non_ints.join(joined_ints)
+        raise UnsupportedNegatedNumeric(schema=s)
 
 
 class JSONTypeNumber(JSONTypeNumeric):
@@ -823,7 +840,15 @@ class JSONTypeNumber(JSONTypeNumeric):
 
     @staticmethod
     def neg(s):
-        """Return the complement of the number schema ``s`` (non-numbers plus gaps)."""
+        """Return the complement of the number schema ``s`` (non-numbers plus gaps).
+
+        Raise ``UnsupportedNegatedNumeric`` for ``multipleOf`` schemas: their
+        complement contains the non-multiples, which the checker language
+        cannot express, and a smaller complement would yield unsound verdicts.
+        """
+        if "multipleOf" in s:
+            raise UnsupportedNegatedNumeric(schema=s)
+
         negated_numbers = []
         non_numbers = bool_to_constructor["anyOf"](
             {"anyOf": get_default_types_except("number", "integer")}
@@ -843,7 +868,6 @@ class JSONTypeNumber(JSONTypeNumeric):
                 negated_numbers.append(
                     JSONTypeNumber({"minimum": s["maximum"], "exclusiveMinimum": True})
                 )
-        # TODO: No handling of multipleOf at the moment.
 
         if len(negated_numbers) == 0:
             return non_numbers

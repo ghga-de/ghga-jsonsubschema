@@ -5,7 +5,10 @@ Contains changes by The GHGA Authors.
 SPDX-License-Identifier: Apache-2.0
 """
 
+import pytest
+
 from jsonsubschema import is_subschema
+from jsonsubschema.exceptions import UnsupportedNegatedNumeric
 
 # Tests for singleton booleans
 
@@ -242,7 +245,9 @@ def test_not_and_two_booleans():
 
 
 def test_not_and_two_nested_booleans():
-    # both schemas negate "booleans or integers in [10, 20]"
+    # both schemas negate "booleans or integers in [10, 20]"; the complement
+    # of an integer range contains non-integer numbers (e.g. 10.5), which
+    # cannot be represented, so negating it is unsupported
     s1 = {
         "not": {
             "anyOf": [{"type": "integer"}, {"type": "boolean"}],
@@ -251,8 +256,10 @@ def test_not_and_two_nested_booleans():
     }
     s2 = {"not": {"type": ["integer", "boolean"], "minimum": 10, "maximum": 20}}
 
-    assert is_subschema(s1, s2)
-    assert is_subschema(s2, s1)
+    with pytest.raises(UnsupportedNegatedNumeric):
+        is_subschema(s1, s2)
+    with pytest.raises(UnsupportedNegatedNumeric):
+        is_subschema(s2, s1)
 
 
 def test_two_booleans():
