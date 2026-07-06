@@ -32,15 +32,15 @@ def canonicalize_schema(obj):
     if utils.is_dict(obj) and obj.get("enum") == []:
         return BOT
 
-    # First, make sure the given json is a valid json schema.
-    # should throw jsonschema.SchemaError on unknown types
+    # First, make sure the given json is a valid json schema;
+    # this throws jsonschema.SchemaError on unknown types.
     utils.validate_schema(obj)
 
     # Second, canonicalize the schema.
     if utils.is_dict(obj):
         canonical_schema = canonicalize_dict(obj)
 
-    # Finally, ensure that canonicalized schema is till a valid json schema.
+    # Finally, ensure that the canonicalized schema is still a valid json schema.
     utils.validate_schema(canonical_schema)
 
     return canonical_schema
@@ -52,8 +52,8 @@ def canonicalize_dict(d, outer_key=None):  # noqa: C901, PLR0911
     ``outer_key`` is the key under which ``d`` appears in its parent schema;
     it is used to leave dict containers such as ``properties`` untouched.
     """
-    # not actually needed, but for testing
-    # canonicalization to work properly;
+    # Not strictly needed, but return these trivial schemas unchanged
+    # so that tests of the canonicalization work properly.
     if d in ({}, {"not": {}}):
         return d
 
@@ -61,11 +61,9 @@ def canonicalize_dict(d, outer_key=None):  # noqa: C901, PLR0911
     # jsonref's ref resolution (which runs before canonicalization)
     # already drops such siblings, so no handling is needed here.
 
-    # Skip normal dict canonicalization
-    # for object.properties;
-    #   patternProperties;
-    #   dependencies
-    # because these should be usual dict containers.
+    # Skip normal dict canonicalization for the contents of properties,
+    # patternProperties and dependencies: these are usual dict containers
+    # mapping keys to schemas, not schemas themselves.
     if outer_key in ["properties", "patternProperties"]:
         for k, v in d.items():
             d[k] = canonicalize_dict(v)

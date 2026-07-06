@@ -89,9 +89,8 @@ def print_db(*args):
 
 
 #
-# To avoid regex bottlenecks, instead of using '.*'
-# as the default value for string.pattern, we use
-# 'None' and apply explicit checks for 'None'.
+# To avoid regex bottlenecks, instead of using '.*' as the default value
+# for string.pattern, we use 'None' and apply explicit checks for 'None'.
 # E.g. regex_meet(s1, None) = s1
 #
 

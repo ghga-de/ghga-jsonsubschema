@@ -51,14 +51,13 @@ class JSONschema(dict, metaclass=UninhabitedMeta):
 
         super().__init__(*args, **kwargs)
 
-        # Since one might call the below constructor directly
-        # with a jsonschema as the constructor parameter,
-        # we also validate that the actual parameter after
-        # being build into a normal dict, is a valid schema.
+        # Since one might call this constructor directly with a JSONschema
+        # as the parameter, also validate that the actual parameter, after
+        # being built into a normal dict, is a valid schema.
         utils.validate_schema(self)
 
         # Instead of adding enum at every child constructor,
-        # do it here once and fir all.
+        # do it here once and for all.
         if "enum" in self:
             self.enum = self["enum"]
 
@@ -96,10 +95,8 @@ class JSONschema(dict, metaclass=UninhabitedMeta):
 
     def is_uninhabited(self):
         """Return whether this schema is uninhabited, warning if so when enabled."""
-        # Don't store uninhabited key,
-        # but rather re-check on the fly to
-        # get an updated results based on the
-        # current internal state.
+        # Don't store an uninhabited flag, but rather re-check on the fly
+        # to get an updated result based on the current internal state.
         uninhabited = self._is_uninhabited()
         if config.WARN_UNINHABITED and uninhabited:
             print("Found an uninhabited type at: ", type(self), self)
@@ -1149,9 +1146,8 @@ class JSONTypeArray(JSONschema):
                     for i in s1.items_:
                         if not i.is_subtype(s2.items_):
                             return False
-                        # since s1.additional items is True,
-                        # then TOP should also be a subtype of
-                        # s2.items
+                    # since s1.additionalItems is top, top must also be
+                    # a subtype of s2.items
                     return bool(JSONtop().is_subtype(s2.items_))
                 if utils.is_dict(s1.additionalItems):
                     for i in s1.items_:
@@ -1187,7 +1183,7 @@ class JSONTypeArray(JSONschema):
                             return False
                     print_db("8888")
                     return True
-                # len2 > len 1
+                # len2 > len1
                 diff = len2 - len1
                 for i in range(len2 - diff, len2):
                     if is_bot(s1.additionalItems):
@@ -1246,9 +1242,7 @@ class JSONTypeObject(JSONschema):
         """Return whether the size bounds or required keys admit no object."""
 
         def required_is_uninhabited(s):
-            """Checks if every required key is actually allowed
-            by the key restrictions
-            """
+            """Check if a required key is not allowed by the key restrictions."""
             if s.additionalProperties:
                 return False
 
@@ -1432,11 +1426,10 @@ class JSONTypeObject(JSONschema):
                 unmatched_lhs_props_keys.discard(k)
                 if not s1.properties[k].is_subtype(s2.properties[k]):
                     return False
-            # for the remaining keys, make sure they either don't exist
-            # in rhs or if they, then their schemas should be sub-type
             else:
+                # for keys without an exact match in rhs properties, check
+                # against the rhs patternProperties matching the key
                 for k_ in s2.patternProperties:
-                    # if utils.regex_is_subset(k, k_):
                     if utils.regex_matches_string(k_, k):
                         unmatched_lhs_props_keys.discard(k)
                         if not s1.properties[k].is_subtype(s2.patternProperties[k_]):
@@ -1450,9 +1443,8 @@ class JSONTypeObject(JSONschema):
                     unmatched_lhs_p_props_keys.discard(k)
                     if not s1.patternProperties[k].is_subtype(s2.patternProperties[k_]):
                         return False
-        # third,
-
-        # fourth,
+        # third, lhs keys with no matching rhs properties or patternProperties
+        # must satisfy rhs additionalProperties
         if is_top(s2.additionalProperties):
             return True
         if is_bot(s2.additionalProperties):
@@ -1467,6 +1459,8 @@ class JSONTypeObject(JSONschema):
         for k in unmatched_lhs_p_props_keys:
             if not s1.patternProperties[k].is_subtype(s2.additionalProperties):
                 return False
+        # fourth, lhs additionalProperties must be a subtype of
+        # rhs additionalProperties
         if is_top(s1.additionalProperties):
             return False
         if is_bot(s1.additionalProperties):
