@@ -566,10 +566,11 @@ def test_property_top2():
 # Tests for dependency keyword
 
 
-def test_1():
+def test_dependencies_ignored():
     s1 = {"type": "object", "dependencies": {"foo": {"type": "string"}}}
     s2 = {"type": "object"}
 
     assert is_subschema(s1, s2)
-    # with self.subTest('"dependencies" not yet supported.'):
-    #     self.assertFalse(is_subschema(s2, s2))
+    # The "dependencies" keyword is not supported and currently ignored,
+    # so the reverse direction would (wrongly) hold as well:
+    # is_subschema(s2, s1) returns True although it should be False.

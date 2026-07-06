@@ -47,11 +47,6 @@ def is_num(i):
     return isinstance(i, numbers.Number)
 
 
-def is_bool(i):
-    """Return whether ``i`` is a boolean."""
-    return isinstance(i, bool)
-
-
 def is_list(i):
     """Return whether ``i`` is a list."""
     return isinstance(i, list)

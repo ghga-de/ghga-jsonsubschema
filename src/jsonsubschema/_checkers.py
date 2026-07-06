@@ -64,7 +64,6 @@ class JSONschema(dict, metaclass=UninhabitedMeta):
 
     def update_internal_state(self):
         """Derive cached attributes (e.g. intervals) from the schema keywords."""
-        pass
 
     def _is_uninhabited(self) -> bool:
         """Return whether this schema type is uninhabited (matches no value)."""
@@ -101,8 +100,7 @@ class JSONschema(dict, metaclass=UninhabitedMeta):
         # but rather re-check on the fly to
         # get an updated results based on the
         # current internal state.
-        uninhabited = self._is_uninhabited()  # and (
-        # "enum" in self and not self["enum"])
+        uninhabited = self._is_uninhabited()
         if config.WARN_UNINHABITED and uninhabited:
             print("Found an uninhabited type at: ", type(self), self)
         return uninhabited
@@ -112,8 +110,6 @@ class JSONschema(dict, metaclass=UninhabitedMeta):
 
         Handles the trivial top/bottom cases and delegates the rest to ``_meet``.
         """
-        #
-        # if self == s or is_top(s):
         if is_top(s):
             return self
         if is_top(self):
@@ -121,25 +117,6 @@ class JSONschema(dict, metaclass=UninhabitedMeta):
         if is_bot(self) or is_bot(s):
             return JSONbot()
         return self._meet(s)
-        #
-        # if self.has_enum() or s.has_enum():
-        #     enum = JSONschema.meet_enum(self, s)
-        #     if enum:
-        #         ret.enum = ret["enum"] = enum
-        #         # ret["enum"] = list(enum)
-        #         # ret.enum = ret["enum"]
-        #     # instead of returning uninhabited type, return bot
-        #     else:
-        #         return JSONbot()
-        #
-
-    # @staticmethod
-    # def meet_enum(s1, s2):
-    # enum = set(s1.get("enum", [])) | set(s2.get("enum", []))
-    # valid_enum1 = utils.get_valid_enum_vals(enum, s1)
-    # valid_enum2 = utils.get_valid_enum_vals(enum, s2)
-    # return set(valid_enum1) & set(valid_enum2)
-    # return list(valid_enum1) + list(valid_enum2)
 
     def meet_handle_rhs(self, s, meet_cb):
         """Dispatch the meet: distribute over ``s`` if it is an ``anyOf`` union.
@@ -156,7 +133,6 @@ class JSONschema(dict, metaclass=UninhabitedMeta):
         Should be removed once we are done fully implementing join
         """
         ret = {"anyOf": [self, s]}
-        # print("Eww! Using abstract _join :: running into corner case!")
         return JSONanyOf(ret)
 
     def join(self, s):
@@ -165,8 +141,6 @@ class JSONschema(dict, metaclass=UninhabitedMeta):
         Handles the trivial top/bottom cases, merges enums where possible, and
         delegates the rest to ``_join``.
         """
-        #
-        # if self == s or is_bot(s):
         if is_bot(s):
             return self
         if is_bot(self):
@@ -200,8 +174,6 @@ class JSONschema(dict, metaclass=UninhabitedMeta):
         Handles the trivial top/bottom cases and the enum check, then delegates
         the rest to ``_is_subtype``.
         """
-        #
-        # if self == s or is_bot(self) or is_top(s):
         if is_bot(self) or is_top(s):
             return True
         if (not is_bot(self) and is_bot(s)) or (is_top(self) and not is_top(s)):
@@ -231,15 +203,6 @@ class JSONschema(dict, metaclass=UninhabitedMeta):
                 return any(is_subtype_cb(self, i) for i in s.anyOf)
             return self.is_subtype_non_trivial(s)
 
-            # elif s.type == "allOf":
-            #     return all(is_subtype_cb(self, i) for i in s.allOf)
-            # elif s.type == "oneOf":
-            #     return utils.one(is_subtype_cb(self, i) for i in s.oneOf)
-            # elif s.type == "not":
-            #     # TODO
-            #     print("No handling of 'not' on rhs yet.")
-            #     return None
-        # else:
         return is_subtype_cb(self, s)
 
 
@@ -350,20 +313,17 @@ class JSONTypeString(JSONschema):
             self.pattern = ""
 
     def _is_uninhabited(self):
-        """Return whether the length bounds are contradictory (min > max)."""
+        """Return whether the length bounds are contradictory (min > max).
+
+        Detecting a contradiction between the pattern and the length bounds
+        would require an expensive regex intersection, so that check is
+        deferred to the actual subtype check.
+        """
         return self.minLength > self.maxLength
-        # or self.pattern == None
-        # See comment below at update_internal_state()
-        # or self.range_with_pattern == None
 
     def update_internal_state(self):
         """Cache the length interval derived from ``minLength`` and ``maxLength``."""
         self.interval = portion.closed(self.minLength, self.maxLength)
-        #
-        # Should be done here to check for uninhabited string schema
-        # But will defer it to the actual subtype check for performance...
-        # range = utils.string_range_to_regex(self.minLength, self.maxLength)
-        # self.range_with_pattern = utils.regex_meet(range, self.pattern)
 
     def _meet(self, s):
         """Meet with ``s``, intersecting length bounds and patterns for strings."""
@@ -637,12 +597,6 @@ class JSONTypeInteger(JSONTypeNumeric):
                         ret = JSONanyOf({"anyOf": [s1, s2]})
                         ret.nonTrivialJoin = True
                         return ret
-            # elif s2.type == "anyOf":
-            #     import copy
-            #     ret = copy.deepcopy(self)
-            #     for i in s2.anyOf:
-            #         ret = ret.join(i)
-            #     return ret
 
             print_db("NonTrivial is not set")
             return JSONanyOf({"anyOf": [s1, s2]})
@@ -665,8 +619,6 @@ class JSONTypeInteger(JSONTypeNumeric):
                 ):
                     print_db("num__01")
                     return True
-            # elif s2.type == "anyOf":
-            #     return self._is_subtype_non_trivial(s)
             else:
                 return False
             return None
@@ -881,9 +833,6 @@ class JSONTypeBoolean(JSONschema):
     def __init__(self, s):
         super().__init__(s)
         self.type = self["type"] = "boolean"
-        # _enum = self.get("enum")
-        # if _enum and len(_enum) == 2:
-        #     del self[_enum]
 
     def _is_uninhabited(self):
         """Return ``False``: a boolean schema is always inhabited."""
@@ -1013,13 +962,7 @@ class JSONTypeArray(JSONschema):
     def _compute_array_meet(s1, s2):  # noqa: C901, PLR0912, PLR0915
         """Compute the meet of two array schemas ``s1`` and ``s2``."""
         if s2.type == "array":
-            # ret = {}
-            # ret["type"] = "array"
-            # ret["minItems"] = max(s1.minItems, s2.minItems)
-            # ret["maxItems"] = min(s1.maxItems, s2.maxItems)
-            # ret["uniqueItems"] = s1.uniqueItems or s2.uniqueItems
             ret = JSONTypeArray({})
-            # ret["type"] = "array"
             ret.minItems = max(s1.minItems, s2.minItems)
             ret.maxItems = min(s1.maxItems, s2.maxItems)
             ret.uniqueItems = s1.uniqueItems or s2.uniqueItems
@@ -1260,10 +1203,6 @@ class JSONTypeArray(JSONschema):
         Negating an array with item/length constraints is not supported and
         raises :class:`UnsupportedNegatedArray`.
         """
-        # for k, default in JSONTypeArray.kw_defaults.items():
-        #     if s.__getattr__(k) != default:
-        #         break
-        # else:
         if s.keys() & definitions.JtypesToKeywords["array"]:
             raise UnsupportedNegatedArray(schema=s)
         return bool_to_constructor["anyOf"](
@@ -1299,12 +1238,6 @@ class JSONTypeObject(JSONschema):
         new_min = max(self.minProperties, len(self.required))
         if new_min != self.minProperties:
             self.minProperties = new_min
-
-        # if is_bot(self.additionalProperties):
-        #     # This is wrong because of patternProperties
-        #     new_max = min(self.maxProperties, len(self.properties))
-        #     if new_max != self.maxProperties:
-        #         self.maxProperties = new_max
 
     def _is_uninhabited(self):
         """Return whether the size bounds or required keys admit no object."""
@@ -1345,15 +1278,6 @@ class JSONTypeObject(JSONschema):
             == self.maxProperties
         ):
             self.additionalProperties = False
-        #
-        # if self.patternProperties != self.kw_defaults["patternProperties"]:
-        #     p = {}
-        #     for k in list(self.patternProperties.keys()):
-        #         v = self.patternProperties.pop(k)
-        #         new_k = utils.regex_unanchor(k)
-        #         p[new_k] = v
-        #     for k in p.keys():
-        #         self.patternProperties[k] = p[k]
 
     def _meet(self, s):
         """Meet with ``s``, intersecting sizes, required keys and property schemas."""
@@ -1421,20 +1345,6 @@ class JSONTypeObject(JSONschema):
             print_db(s2.interval, s2)
             print_db("__00__")
             return False
-        #
-        # else:
-        #     # If ranges are ok, check another trivial case of almost
-        #     # identical objects. This is some sort of performance heuristic.
-        #     if set(s1.required).issuperset(s2.required) \
-        #         and s1.properties == s2.properties \
-        #         and s1.patternProperties == s2.patternProperties \
-        #         and (s1.additionalProperties == s2.additionalProperties
-        #              or (utils.is_dict(s1.additionalProperties)
-        #                  and s1.additionalProperties.is_subtype(
-        #                      s2.additionalProperties))):
-        #         print_db("__01__")
-        #         return True
-        # #
 
         def get_schema_for_key(k, s):
             """Searches for matching key and get the corresponding schema(s).
@@ -1486,27 +1396,12 @@ class JSONTypeObject(JSONschema):
             for k_ in s1.patternProperties:
                 if utils.regex_matches_string(k_, k):
                     extra_keys_on_rhs.remove(k)
-        # if extra_keys_on_rhs:
-        # if not s1.additionalProperties:
-        #     print_db("?__05__")
-        #     return False
-        # else:
         for _k in extra_keys_on_rhs:
             if is_bot(s1.additionalProperties):
                 continue
             if is_top(s1.additionalProperties):
                 print_db("__06__")
                 return False
-            # for s in get_schema_for_key(k, s1):
-            #     if not is_bot(s):
-            #         continue
-            #     elif is_bot(s2.):
-            #         return False
-            # print("-->", s)
-            # if is_top(s) and not is_top(s2.properties[k]) \
-            #         or not s.is_subtype(s2.properties[k]):
-            #     print_db("__06__")
-            #     return False
 
         extra_patterns_on_rhs = set(s2.patternProperties.keys()).difference(
             s1.patternProperties.keys()
@@ -1526,22 +1421,6 @@ class JSONTypeObject(JSONschema):
                     except OverflowError:
                         print_db("__08__")
                         return False
-        #
-        # missing_props_from_lhs = set(
-        #     s2.properties.keys()) - set(s1.properties.keys())
-        # for k in missing_props_from_lhs:
-        #     for k_ in s1.patternProperties.keys():
-        #         if utils.regex_matches_string(k_, k):
-        #             if not s1.patternProperties[k_].is_subtype(s2.properties[k]):
-        #                 return False
-
-        # Now, lhs has a patternProperty which is subtype of a property on the rhs.
-        # Ideally, at this point, I'd like to check that EVERY property matched by
-        # this pattern also exist on the rhs.
-        # from greenery.lego import parse
-        # p = parse(k_)
-        # try:
-        # p.cardinality
 
         # first, matching properties should be subtype pairwise
         unmatched_lhs_props_keys = set(s1.properties.keys())
@@ -1598,10 +1477,6 @@ class JSONTypeObject(JSONschema):
         Negating an object with property/size constraints is not supported and
         raises :class:`UnsupportedNegatedObject`.
         """
-        # for k, default in JSONTypeObject.kw_defaults.items():
-        #     if s.__getattr__(k) != default:
-        #         break
-        # else:
         if s.keys() & definitions.JtypesToKeywords["object"]:
             raise UnsupportedNegatedObject(schema=s)
         return bool_to_constructor["anyOf"](
@@ -1626,18 +1501,6 @@ class JSONanyOf(JSONschema):
         self.type = "anyOf"
         self.anyOf: list = self["anyOf"]
         self.nonTrivialJoin = False
-
-    # def __eq__(self, other):
-    #     ''' This is some sort of hack to compare two anyOf schemas for equality
-    #         instead performing the proper subtype checks. It works for simple cases
-    #         where the schemas in anyOf are dicts with no nested lists/dicts... .
-    #         I think this should be avoided and should not be needed once we are done
-    #         with all cases of join. '''
-    #     if isinstance(other, JSONanyOf):
-    #         return set(tuple(sorted(d.items())) for d in self.anyOf) \
-    #             == set(tuple(sorted(d.items())) for d in other.anyOf)
-    #     else:
-    #         return super().__eq__(other)
 
     def update_internal_state(self):
         """Flatten nested ``anyOf`` members into this union."""
@@ -1709,17 +1572,6 @@ def json_all_of_factory(s):
         ret = ret.meet(i)
 
     return ret
-
-
-# def JSONnotFactory(s):
-#     t = s.type
-#     if t in definitions.Jtypes:
-#         anyofs = []
-#         for t_i in definitions.Jtypes - set([t]):
-#             anyofs.append(type_to_constructor.get(t_i)({"type": t_i}))
-#         anyofs.append(negTypeToConstructor.get(t)(s))
-#         return bool_to_constructor["anyOf"]({"anyOf": anyofs})
-# return JSONanyOf({"anyOf": anyofs})
 
 
 type_to_constructor = {

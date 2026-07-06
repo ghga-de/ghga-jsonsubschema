@@ -52,10 +52,9 @@ Jcommonkw = Jconnectors.union(["enum", "type", "const"])
 
 JNonValidation = {"$schema", "$id", "definitions", "title", "description", "format"}
 
-# Jkeywords = Jcommonkw.union(
-#     Jtypes, reduce(operator.add, JtypesToKeywords.values())).union(["$ref"])
+# JNonValidation is deliberately not part of Jkeywords:
+# including it would conflict with canonicalize_connectors.
 Jkeywords = Jcommonkw.union(Jtypes, JtypesRestrictionKeywords, ["$ref"])
-# .union(JNonValidation) # conflicts with canonicalize_connectors
 
 JtypesToPyTypes = {
     "integer": int,

@@ -131,6 +131,7 @@ select = [
     "PERF", # perflint, cheap performance anti-patterns
     "RET", # flake8-return, small mechanical return-statement cleanups
     "C4", # flake8-comprehensions, mechanical comprehension cleanups
+    "ERA", # eradicate, keeps commented-out code from creeping back in
 ]
 
 [tool.ruff.lint.mccabe]
