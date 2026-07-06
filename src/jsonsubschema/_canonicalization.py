@@ -17,7 +17,10 @@ from jsonsubschema._checkers import (
     bool_to_constructor,
     type_to_constructor,
 )
-from jsonsubschema.exceptions import UnsupportedEnumCanonicalization
+from jsonsubschema.exceptions import (
+    UnsupportedDependencies,
+    UnsupportedEnumCanonicalization,
+)
 
 _nan = float("nan")
 BOT: dict = {"not": {}}
@@ -97,19 +100,23 @@ def canonicalize_dict(d, outer_key=None):  # noqa: C901, PLR0911
     return canonicalize_list_of_types(d)
 
 
-def canonicalize_single_type(d):
-    """Canonicalize a schema with a single ``type``, dropping irrelevant keywords."""
-    t = d.get("type")
-    if t not in definitions.Jtypes:
-        # cannot happen: the jsonschema validation at the start rejects unknown types
-        raise ValueError(f"Unknown schema type {t!r} at: {d}")
-    # Remove irrelevant keywords
+def _is_relevant_keyword(k, t):
+    """Return whether keyword ``k`` is relevant for a schema of type ``t``."""
+    return (
+        k in definitions.Jcommonkw
+        or k in definitions.JtypesToKeywords.get(t, set())
+        or k in definitions.JNonValidation
+    )
+
+
+def _canonicalize_keywords(d, t):
+    """Drop irrelevant keywords of ``d`` in place and canonicalize the rest.
+
+    Returns ``False`` if the ``enum`` admits no value of type ``t``,
+    which renders the schema uninhabited.
+    """
     for k, v in list(d.items()):
-        if (
-            k not in definitions.Jcommonkw
-            and k not in definitions.JtypesToKeywords.get(t, set())
-            and k not in definitions.JNonValidation
-        ):
+        if not _is_relevant_keyword(k, t):
             d.pop(k)
         elif utils.is_dict(v):
             d[k] = canonicalize_dict(v, k)
@@ -117,14 +124,29 @@ def canonicalize_single_type(d):
             if k == "enum":
                 v = utils.get_typed_enum_vals(v, t)
                 if not v:
-                    # no enum value fits the type, so the schema is uninhabited
-                    return BOT
+                    return False
                 d[k] = v
             elif k == "required":
                 d[k] = sorted(set(v))
             else:
                 # "list" must be operand of boolean connectors
                 d[k] = [canonicalize_dict(i) for i in v]
+    return True
+
+
+def canonicalize_single_type(d):
+    """Canonicalize a schema with a single ``type``, dropping irrelevant keywords."""
+    t = d.get("type")
+    if t not in definitions.Jtypes:
+        # cannot happen: the jsonschema validation at the start rejects unknown types
+        raise ValueError(f"Unknown schema type {t!r} at: {d}")
+    if t == "object" and d.get("dependencies"):
+        # fail loudly instead of ignoring the constraint and potentially
+        # returning an unsound verdict
+        raise UnsupportedDependencies(schema=d)
+    if not _canonicalize_keywords(d, t):
+        # no enum value fits the type, so the schema is uninhabited
+        return BOT
     if "enum" in d:
         return rewrite_enum(d)
     return d

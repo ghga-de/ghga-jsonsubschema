@@ -97,9 +97,13 @@ This fork is based on version 0.0.8 of [IBM/jsonsubschema](https://github.com/ib
 * An empty `enum` is now treated as an uninhabited schema.
 * Bugs inherited from upstream have been fixed: negating a numeric schema now
   respects `exclusiveMinimum`/`exclusiveMaximum`, intersecting numeric schemas
-  no longer drops exclusive bounds, and nested `anyOf` unions are now fully
+  no longer drops exclusive bounds, nested `anyOf` unions are now fully
   flattened (previously, adjacent nested unions could make two equivalent
-  schemas compare as unrelated).
+  schemas compare as unrelated), and arrays with at most one item are now
+  recognized as satisfying `uniqueItems`.
+* The `dependencies` keyword (which upstream silently ignores) now raises
+  `exceptions.UnsupportedDependencies` instead of potentially returning
+  unsound verdicts.
 * Negating an integer schema that admits more than one value (e.g.
   `{"not": {"type": "integer", "minimum": 10, "maximum": 20}}`) or a numeric
   schema with `multipleOf` now raises

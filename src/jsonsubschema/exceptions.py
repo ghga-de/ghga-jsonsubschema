@@ -6,6 +6,7 @@ SPDX-License-Identifier: Apache-2.0
 """
 
 __all__ = [
+    "UnsupportedDependencies",
     "UnsupportedEnumCanonicalization",
     "UnsupportedNegatedArray",
     "UnsupportedNegatedNumeric",
@@ -36,6 +37,17 @@ class UnsupportedRecursiveRef(_CanonicalizationError):
     def __str__(self):
         """Return human-readable error message."""
         return f"Recursive schemas are not supported. {self.which_side} is recursive."
+
+
+class UnsupportedDependencies(_CanonicalizationError):
+    """Raised when a schema uses the unsupported ``dependencies`` keyword."""
+
+    def __init__(self, schema):
+        self.schema = schema
+
+    def __str__(self):
+        """Return human-readable error message."""
+        return f"The 'dependencies' keyword at {self.schema} is not supported."
 
 
 class UnsupportedEnumCanonicalization(_CanonicalizationError):

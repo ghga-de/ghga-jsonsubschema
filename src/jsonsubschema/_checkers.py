@@ -1092,9 +1092,12 @@ class JSONTypeArray(JSONschema):
             print_db("__01__")
             return False
         #
-        # -- uniqueItemsue
-        # TODO Double-check. Could be more subtle?
-        if not s1.uniqueItems and s2.uniqueItems:
+        # -- uniqueItems
+        # An array with at most one item is trivially unique. Beyond that,
+        # be conservative: a lhs allowing duplicates is not considered a
+        # subtype of a rhs requiring uniqueness, even in subtle cases where
+        # the lhs item schemas could never produce duplicates anyway.
+        if s2.uniqueItems and not s1.uniqueItems and s1.maxItems > 1:
             print_db("__02__")
             return False
         #

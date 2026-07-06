@@ -21,9 +21,9 @@ Key facts:
 - Package name on PyPI: `ghga-jsonsubschema`; import name: `jsonsubschema`.
 - Requires Python 3.13+; dependency management with `uv` (`uv.lock`).
 - Only JSON Schema **draft 4** is supported (`config.VALIDATOR`).
-- Recursive `$ref`s, some negated object/array schemas, and non-regular
-  regexes are *unsupported* and raise dedicated exceptions rather than
-  returning wrong answers.
+- Recursive `$ref`s, some negated object/array/numeric schemas, the
+  `dependencies` keyword, and non-regular regexes are *unsupported* and raise
+  dedicated exceptions rather than returning wrong answers.
 
 ## Repository layout
 
