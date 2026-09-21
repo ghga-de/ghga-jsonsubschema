@@ -1,6 +1,21 @@
 # GHGA JSON Subschema
 
-> **Note:** This is a fork of [IBM/jsonsubschema](https://github.com/ibm/jsonsubschema) maintained by the [German Human Genome-Phenome Archive (GHGA)](https://www.ghga.de/). It was created to bring in necessary fixes, updates, and functionality required by GHGA-related projects.
+> [!IMPORTANT]
+> **This repository is archived and no longer maintained.**
+>
+> Development of this library continues in the GHGA mono repository at
+> [ghga-de/ghga](https://github.com/ghga-de/ghga), where it now lives under
+> [`libs/ghga-jsonsubschema`](https://github.com/ghga-de/ghga/tree/main/libs/ghga-jsonsubschema).
+> Please open issues and pull requests there.
+>
+> This repository is kept read-only for its history. The documentation below
+> describes the state of the code as of the last standalone release made here.
+>
+> This library is a fork of
+> [IBM/jsonsubschema](https://github.com/ibm/jsonsubschema) maintained by the
+> [German Human Genome-Phenome Archive (GHGA)](https://www.ghga.de/). It was
+> created to bring in necessary fixes, updates, and functionality required by
+> GHGA-related projects.
 
 **ghga-jsonsubschema** checks if one JSON schema is a subschema (subtype) of another.
 
